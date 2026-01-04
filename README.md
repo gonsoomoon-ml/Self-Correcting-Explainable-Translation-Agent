@@ -4,25 +4,30 @@
 
 > 평가하고, 설명하고, 스스로 개선한다.
 
-## Why?
+## 일반적인 번역 작업의 문제 (Why?)
+일반적으로 번역의 업무는 사람에 크게 의존을 하고 있습니다. 아래와 같은 일반적인 문제를 가지고 있습니다.
 
 | 기존 워크플로우 문제 | 영향 |
 |---------------------|------|
-| 수동 검수 병목 | PM이 모든 번역을 검토 → 출시 지연 |
+| 수동 검수 병목 | 사람이 모든 번역을 검토 → 출시 지연 |
 | 일관성 없는 품질 | 검수자마다 다른 기준 적용 |
+| 용어 불일치 | 같은 단어가 문서마다 다르게 번역 → 브랜드 혼란 |
 | 블랙박스 판정 | "왜 리젝?" 설명 부재 |
+| 비결정적 의사결정 | LLM 출력이 매번 달라 감사 불가 |
 | 규정 준수 리스크 | 금칙어·면책문구 누락 → 법적 위험 |
 
-## What?
+## 만들고자 하는 것 (What?)
 
 **목표**: 고품질 번역을 자동 검증하고 개선하여 사람의 검수 부담을 줄이는 시스템
 
-| 목표 | 달성 방법 |
-|------|----------|
-| 자동 품질 관리 | 3개 에이전트가 정확성/규정준수/품질 병렬 평가 |
-| 설명 가능한 판정 | 모든 점수에 Chain-of-Thought 근거 제시 |
-| 자동 품질 개선 | Maker-Checker 패턴으로 피드백 기반 재생성 |
-| 투명한 의사결정 | 검수자가 판정 근거를 즉시 확인 가능 |
+| 문제 | 해결책 | 구현 방식 |
+|------|--------|----------|
+| 수동 검수 병목 | 자동 품질 관리 | 3개 에이전트가 정확성/규정준수/품질 병렬 평가 |
+| 블랙박스 판정 | 설명 가능한 판정 | 모든 점수에 Chain-of-Thought 근거 제시 |
+| 일관성 없는 품질 | 자동 품질 개선 | Maker-Checker 패턴으로 피드백 기반 재생성 |
+| 용어 불일치 | 용어집 기반 번역 | 도메인별 Glossary로 용어 일관성 강제 |
+| 비결정적 의사결정 | SOP 기반 정책 | 판정 로직을 Python 코드로 명확히 정의 (LLM 호출 없음) |
+| 규정 준수 리스크 | 투명한 의사결정 | 검수자가 판정 근거를 즉시 확인 가능 |
 
 ### Technical Novelty
 
@@ -32,18 +37,29 @@
 | **Backtranslation Verification** | 역번역으로 의미 보존 검증 → 환각(hallucination) 감지 |
 | **Maker-Checker Loop** | 평가 에이전트 피드백을 번역 에이전트에 주입 → 자동 개선 |
 | **Explainable Scoring** | 0-5 점수 + reasoning_chain → 감사 가능한 판정 |
-| **Glossary-Aware Quality** | 품질 평가 시 용어집 제약 인식 → 에이전트 간 충돌 방지 |
+| **SOP-Driven Policy** | 판정 로직(Pass/Block/Regenerate)을 Python SOP로 분리 → LLM 비의존적, 결정론적, 감사 가능 |
+| **Glossary-Aware Quality** | Quality 에이전트가 용어집 제약 인식 → "Customer Support"가 어색해도 규정 용어면 감점 안함 |
 
 ## How?
 
 ```
+                    ┌──────────┐
+                    │ GLOSSARY │
+                    └────┬─────┘
+                         │ (용어 제약)
+                         ▼
 ┌─────────┐    ┌───────────┐    ┌──────────────────────┐    ┌──────┐
 │ 원문    │ → │ 번역      │ → │ 평가 (3 에이전트)     │ → │ 판정 │
 │ INPUT   │    │ TRANSLATE │    │ Accuracy/Compliance/ │    │ GATE │
 └─────────┘    └───────────┘    │ Quality (병렬)       │    └──┬───┘
                                 └──────────────────────┘       │
-                         ┌─────────────────┬──────────────────┬┘
-                         ↓                 ↓                  ↓
+                                                               ▼
+                                                         ┌─────────┐
+                                                         │   SOP   │
+                                                         │ (정책)  │
+                                                         └────┬────┘
+                         ┌─────────────────┬─────────────────┬┘
+                         ↓                 ↓                 ↓
                     ✅ PASS          🔄 REGENERATE        ❌ BLOCK
                    (자동 발행)        (자동 재생성)        (즉시 거부)
                     [5점]             [3-4점]              [≤2점]
@@ -170,24 +186,35 @@ Correction: "will occur" → "will be initiated" 제안
 
 ## Implementation Approach
 
-본 시스템은 **4개 레이어**로 구성된 관심사 분리 아키텍처를 채택합니다:
+본 시스템은 **관심사 분리 아키텍처**를 채택합니다.
 
-| 레이어 | 위치 | 주요 파일 | 역할 |
-|--------|------|-----------|------|
-| **Models** | `src/models/` | `TranslationUnit`, `AgentResult`, `GateDecision` | Pydantic 기반 타입 안전 데이터 구조 |
-| **Tools** | `src/tools/` | `translator`, `backtranslator`, `*_evaluator` (3개) | Agent-as-Tool 패턴으로 LLM 호출 캡슐화 |
-| **SOPs** | `sops/` | `evaluation_gate`, `regeneration` | 비즈니스 로직 (점수 판정, 피드백 수집) - LLM 호출 없음 |
-| **Graph** | `src/graph/` | `builder`, `nodes` | State Machine 패턴으로 워크플로우 오케스트레이션 |
-| **Prompts** | `src/prompts/` | `translator.md`, `*_evaluator.md` | 에이전트별 시스템 프롬프트 템플릿 |
-| **Utils** | `src/utils/` | `strands_utils`, `observability` | Strands Agent 래퍼, OTEL 트레이싱 |
-| **Config** | `config/` | `settings.yaml`, `languages.yaml` | 임계값, 모델, 언어 설정 (YAML) |
-| **Data** | `data/glossaries/` | `*.json` | 도메인별 용어집 (번역 일관성 보장) |
-| **Examples** | `examples/` | `single/`, `batch/` | 테스트 입력 예제 (JSON) |
+### Core Architecture (4 Layers)
 
-**핵심 설계 결정:**
-- **병렬 평가**: 3개 에이전트가 `asyncio.gather`로 동시 실행 → 지연시간 최소화
-- **프롬프트/로직 분리**: Skills(지식)는 Markdown, SOPs(판정)는 Python → 각각 독립 수정 가능
-- **설정 외부화**: 임계값, 모델, 언어를 YAML로 관리 → 코드 수정 없이 튜닝
+| 레이어 | 위치 | 역할 | 핵심 파일 |
+|--------|------|------|-----------|
+| **Graph** | `src/graph/` | 워크플로우 오케스트레이션 (State Machine) | `builder.py`, `nodes.py` |
+| **Tools** | `src/tools/` | Agent-as-Tool 패턴으로 LLM 호출 캡슐화 | `translator`, `*_evaluator` (3개) |
+| **SOPs** | `sops/` | 결정론적 정책 로직 (LLM 호출 없음) | `evaluation_gate`, `regeneration` |
+| **Models** | `src/models/` | Pydantic 기반 타입 안전 데이터 구조 | `TranslationUnit`, `GateDecision` |
+
+### Supporting Components
+
+| 컴포넌트 | 위치 | 역할 |
+|----------|------|------|
+| **Prompts** | `src/prompts/` | 에이전트별 시스템 프롬프트 템플릿 (Markdown) |
+| **Glossaries** | `data/glossaries/` | 도메인별 용어집 → 용어 일관성 강제 |
+| **Config** | `config/` | 임계값, 모델, 언어 설정 (YAML) |
+| **Utils** | `src/utils/` | Strands Agent 래퍼, OTEL 트레이싱 |
+
+### 핵심 설계 결정
+
+| 결정 | 이유 | 효과 |
+|------|------|------|
+| **SOP로 정책 분리** | 판정 로직을 Python 코드로 명확히 정의 | LLM 비의존적, 결정론적, 감사 가능 |
+| **병렬 평가** | 3개 에이전트가 `asyncio.gather`로 동시 실행 | 지연시간 최소화 |
+| **프롬프트/로직 분리** | Prompts(지식)는 Markdown, SOPs(판정)는 Python | 각각 독립 수정 가능 |
+| **설정 외부화** | 임계값, 모델, 언어를 YAML로 관리 | 코드 수정 없이 튜닝 |
+| **Glossary 공유** | 번역·평가 에이전트가 동일 용어집 참조 | 에이전트 간 충돌 방지 |
 
 ## Project Structure
 
