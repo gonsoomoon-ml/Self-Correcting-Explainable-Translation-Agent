@@ -1,0 +1,179 @@
+{
+  "key": "IDS_UI_REGEN_001",
+  "source_text": "데이터 동기화 중 오류가 발생했습니다. 네트워크 연결을 확인하시고, 문제가 지속되면 고객센터로 문의해 주세요. 자동 재시도는 5분 후에 진행됩니다.",
+  "translation": "An error occurred during data sync. Please check your network connection, and if the problem persists, contact Customer Support. An automatic retry will be initiated in 5 minutes.",
+  "workflow_state": "published",
+  "attempt_count": 3,
+  "scores": {
+    "accuracy": 5,
+    "compliance": 5,
+    "quality": 5
+  },
+  "verdict": "pass",
+  "can_publish": true,
+  "total_latency_ms": 25748,
+  "created_at": "2026-01-04T13:10:57.694011",
+  "cost_usd": 0.062409,
+  "details": {
+    "source_lang": "ko",
+    "target_lang": "en-rUS",
+    "glossary": {
+      "동기화": "sync",
+      "네트워크": "network",
+      "고객센터": "Customer Support",
+      "자동 재시도": "automatic retry"
+    },
+    "translation": {
+      "candidates": [
+        "An error occurred during data sync. Please check your network connection, and if the problem persists, contact Customer Support. An automatic retry will be initiated in 5 minutes."
+      ],
+      "notes": "이전 피드백을 반영하여 'will occur'를 'will be initiated'로 수정했습니다. 이는 원문 '진행됩니다'의 능동적이고 확정적인 뉘앙스를 더 잘 전달합니다. 용어집에 따라 동기화→sync, 네트워크→network, 고객센터→Customer Support, 자동 재시도→automatic retry를 정확히 적용했습니다.",
+      "latency_ms": 5441
+    },
+    "backtranslation": {
+      "text": "데이터 동기화 중에 오류가 발생했습니다. 네트워크 연결을 확인하시고, 문제가 지속되면 고객 지원팀에 연락하십시오. 자동 재시도가 5분 후에 시작될 것입니다.",
+      "notes": "원문은 표준적인 오류 메시지 형식을 따르고 있으며, 의미가 명확하게 전달됩니다. 'data sync'는 '데이터 동기화', 'Customer Support'는 '고객 지원팀'으로 직역했습니다. 'automatic retry'는 '자동 재시도'로 번역되며, 시간 표현 'in 5 minutes'는 '5분 후에'로 직역했습니다. 전체적으로 기술 문서나 소프트웨어 UI에서 흔히 볼 수 있는 표준 오류 안내 문구입니다.",
+      "latency_ms": 4902
+    },
+    "evaluations": [
+      {
+        "agent": "accuracy",
+        "score": 5,
+        "verdict": "pass",
+        "issues": [],
+        "reasoning_chain": [
+          "Step 1 (Semantic): 원문과 역번역을 비교한 결과, 전반적인 의미가 잘 보존되었습니다. '데이터 동기화 중 오류 발생' → '데이터 동기화 중에 오류가 발생' (의미 동일), '네트워크 연결 확인' → '네트워크 연결을 확인' (의미 동일), '고객센터로 문의' → '고객 지원팀에 연락' (의미 동일), '자동 재시도는 5분 후에 진행됩니다' → '자동 재시도가 5분 후에 시작될 것입니다' (의미 동일). 미세한 뉘앙스 차이는 있으나 핵심 의미는 완벽하게 전달되었습니다.",
+          "Step 2 (Terminology): 용어집의 모든 용어가 정확하게 적용되었습니다. '동기화' → 'sync' (정확), '네트워크' → 'network' (정확), '고객센터' → 'Customer Support' (정확), '자동 재시도' → 'automatic retry' (정확). 모든 전문 용어가 용어집 기준에 부합합니다.",
+          "Step 3 (Format): 원문에 HTML 태그, 플레이스홀더, 특수 형식이 없으며, 번역문도 동일하게 일반 텍스트 형식을 유지했습니다. 숫자 '5분'도 '5 minutes'로 정확하게 보존되었습니다. 형식 무결성이 완벽하게 유지되었습니다."
+        ],
+        "corrections": [],
+        "latency_ms": 7098
+      },
+      {
+        "agent": "compliance",
+        "score": 5,
+        "verdict": "pass",
+        "issues": [],
+        "reasoning_chain": [
+          "Step 1 (금칙어 검사): 제공된 리스크 프로파일에 금칙어 목록이 없으며, 번역문에서 일반적인 금지 용어(보장, 절대, 무료, 승인 보장 등)를 검색한 결과 해당 사항 없음. 기술 지원 안내 문구로 적절함.",
+          "Step 2 (필수 고지사항 검사): FAQ 컨텍스트의 기술 지원 안내 메시지. 데이터 처리나 개인정보 수집이 아닌 단순 오류 안내이므로 특별한 법적 고지사항 불필요. 고객센터 연락 안내가 적절히 포함됨.",
+          "Step 3 (콘텐츠 안전성 평가): 오류 메시지로서 명확하고 중립적. 오해의 소지가 있는 표현 없음. '자동 재시도 5분 후' 정보는 투명하고 사용자 친화적. 문화적으로 부적절한 내용 없음.",
+          "Step 4 (규제 정합성 검사): GDPR - 개인정보 처리 없음, 해당 없음. CCPA - 데이터 수집/판매 없음, 해당 없음. 일반 소비자 보호 - 명확한 문제 해결 절차 제시로 적합. 접근성 - 간결하고 이해하기 쉬운 언어 사용."
+        ],
+        "corrections": [],
+        "latency_ms": 11121
+      },
+      {
+        "agent": "quality",
+        "score": 5,
+        "verdict": "pass",
+        "issues": [],
+        "reasoning_chain": [
+          "Step 1 (Fluency): 번역이 자연스럽게 읽힙니다. 문장 구조가 영어 원어민에게 익숙한 패턴을 따르고 있으며, 어색한 표현이나 '번역투'가 느껴지지 않습니다. 'An error occurred during data sync'는 기술 문서에서 흔히 사용되는 자연스러운 표현입니다.",
+          "Step 2 (Tone): FAQ/Help 콘텐츠에 적합한 톤입니다. 'Please check'와 같은 정중한 요청 표현을 사용하고 있으며, 문제 해결을 위한 안내가 친절하면서도 전문적입니다. 사용자에게 다음 단계를 명확히 안내하고 있어 도움이 됩니다.",
+          "Step 3 (Cultural): 영어권 사용자에게 적합한 표현들입니다. 날짜/시간 표현('5 minutes')이 올바르게 사용되었고, 'Customer Support'라는 용어도 미국 영어에서 일반적으로 사용됩니다. 문화적으로 부적절한 내용은 없습니다."
+        ],
+        "corrections": [],
+        "latency_ms": 7529
+      }
+    ],
+    "gate_decision": {
+      "verdict": "pass",
+      "can_publish": true,
+      "scores": {
+        "accuracy": 5,
+        "compliance": 5,
+        "quality": 5
+      },
+      "min_score": 5,
+      "avg_score": 5.0,
+      "message": "모든 에이전트 통과 [accuracy=5, compliance=5, quality=5]. 발행 준비 완료.",
+      "blocker_agent": null,
+      "review_agents": [],
+      "agent_agreement_score": 1.0,
+      "total_latency_ms": 25748
+    },
+    "attempt_history": [
+      {
+        "attempt": 1,
+        "verdict": "regenerate",
+        "scores": {
+          "accuracy": 5,
+          "compliance": 5,
+          "quality": 4
+        },
+        "message": "재생성 중 (시도 1/2). 문제 에이전트: quality",
+        "issues": {
+          "quality": [
+            "'Automatic retry will proceed in 5 minutes'가 약간 형식적으로 들릴 수 있음 (용어집 준수로 인한 제약)"
+          ]
+        },
+        "corrections": {
+          "quality": [
+            {
+              "original": "Automatic retry will proceed in 5 minutes.",
+              "suggested": "An automatic retry will occur in 5 minutes.",
+              "reason": "'proceed'보다 'occur'가 더 자연스러운 동사 선택이며, 관사 'An'을 추가하면 문장이 더 완성도 있게 들립니다. 용어집의 'automatic retry'는 유지했습니다."
+            }
+          ]
+        }
+      },
+      {
+        "attempt": 2,
+        "verdict": "regenerate",
+        "scores": {
+          "accuracy": 4,
+          "compliance": 5,
+          "quality": 5
+        },
+        "message": "재생성 중 (시도 2/2). 문제 에이전트: accuracy",
+        "issues": {
+          "accuracy": [
+            "'진행됩니다'와 'will occur'의 뉘앙스 차이: 원문은 확정적/능동적 표현이나 번역은 다소 수동적 표현"
+          ]
+        },
+        "corrections": {
+          "accuracy": [
+            {
+              "original": "An automatic retry will occur in 5 minutes.",
+              "suggested": "An automatic retry will be initiated in 5 minutes.",
+              "reason": "'will be initiated'가 '진행됩니다'의 능동적이고 확정적인 뉘앙스를 더 잘 전달합니다. 'occur'는 '발생하다'로 다소 수동적인 느낌을 줍니다."
+            }
+          ]
+        }
+      },
+      {
+        "attempt": 3,
+        "verdict": "pass",
+        "scores": {
+          "accuracy": 5,
+          "compliance": 5,
+          "quality": 5
+        },
+        "message": "모든 에이전트 통과 [accuracy=5, compliance=5, quality=5]. 발행 준비 완료.",
+        "issues": {},
+        "corrections": {}
+      }
+    ],
+    "metrics": {
+      "total_latency_ms": 60103,
+      "translation_latency_ms": 5441,
+      "backtranslation_latency_ms": 4902,
+      "evaluation_latency_ms": 25748,
+      "attempt_count": 3,
+      "token_usage": {
+        "input": 5514,
+        "output": 2183,
+        "cache_read": 0,
+        "cache_write": 0
+      },
+      "cost_usd": {
+        "input_cost": 0.020949,
+        "output_cost": 0.04146,
+        "cache_read_cost": 0.0,
+        "cache_write_cost": 0.0,
+        "total_cost": 0.062409
+      }
+    }
+  }
+}

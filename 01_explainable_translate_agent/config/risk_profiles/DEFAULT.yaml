@@ -1,0 +1,77 @@
+# Default Risk Profile
+# Fallback profile when no country-specific profile exists
+# Contains universal content safety rules
+
+profile:
+  country_code: DEFAULT
+  country_name: Global Default
+  region: Global
+  regulatory_strictness: medium
+
+# Universal prohibited terms (content safety)
+prohibited_terms:
+  # Absolute guarantees (misleading in any market)
+  - pattern: "100% guaranteed"
+    context: "absolute claims"
+    severity: medium
+    suggestion: "Use qualified language"
+
+  - pattern: "never fails"
+    context: "reliability claims"
+    severity: medium
+    suggestion: "Use 'highly reliable' instead"
+
+  # Dangerous health claims
+  - pattern: "cures"
+    context: "health claims"
+    severity: critical
+    suggestion: "Cannot make cure claims for non-medical products"
+
+  - pattern: "prevents disease"
+    context: "health claims"
+    severity: critical
+    suggestion: "Remove health prevention claims"
+
+# Basic required disclaimers
+required_disclaimers:
+  data_deletion:
+    trigger_phrases:
+      - "delete account"
+      - "remove data"
+      - "data deletion"
+    disclaimer: "This action cannot be undone."
+    placement: "before_action"
+
+  payment:
+    trigger_phrases:
+      - "purchase"
+      - "subscription"
+      - "payment"
+    disclaimer: "Charges may apply."
+    placement: "before_action"
+
+# Basic privacy (minimal requirements)
+privacy:
+  pii_categories:
+    - name: "personal_data"
+      description: "Any personally identifiable information"
+      handling: "handle_with_care"
+
+  consent_requirements: []
+
+# No specific age restrictions in default
+age_restrictions: {}
+
+# No specific accessibility requirements in default
+accessibility:
+  requirements: []
+
+# Neutral tone
+tone:
+  formality_level: medium
+  avoid:
+    - "offensive language"
+    - "discriminatory terms"
+  prefer:
+    - "clear language"
+    - "respectful tone"

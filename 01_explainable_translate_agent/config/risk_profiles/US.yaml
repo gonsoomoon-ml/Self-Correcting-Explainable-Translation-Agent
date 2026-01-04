@@ -1,0 +1,145 @@
+# US Risk Profile
+# Legal and regulatory requirements for United States
+
+profile:
+  country_code: US
+  country_name: United States
+  region: North America
+  regulatory_strictness: high
+
+# Prohibited terms and phrases
+prohibited_terms:
+  # Absolute guarantees (FTC regulations)
+  - pattern: "guaranteed"
+    context: "absolute claims"
+    severity: high
+    suggestion: "Remove or qualify the guarantee"
+
+  - pattern: "100% safe"
+    context: "safety claims"
+    severity: critical
+    suggestion: "Use qualified language like 'designed to be safe'"
+
+  - pattern: "never fail"
+    context: "reliability claims"
+    severity: high
+    suggestion: "Use 'highly reliable' instead"
+
+  - pattern: "always works"
+    context: "performance claims"
+    severity: high
+    suggestion: "Use 'designed to work reliably'"
+
+  # Medical/health claims (FDA regulations)
+  - pattern: "cures"
+    context: "health claims"
+    severity: critical
+    suggestion: "Cannot make cure claims for non-medical devices"
+
+  - pattern: "treats disease"
+    context: "health claims"
+    severity: critical
+    suggestion: "Remove health treatment claims"
+
+  - pattern: "prevents illness"
+    context: "health claims"
+    severity: critical
+    suggestion: "Remove illness prevention claims"
+
+  # Financial claims (SEC/FTC regulations)
+  - pattern: "guaranteed returns"
+    context: "financial claims"
+    severity: critical
+    suggestion: "Cannot guarantee financial returns"
+
+  - pattern: "risk-free investment"
+    context: "financial claims"
+    severity: critical
+    suggestion: "All investments carry risk"
+
+# Required disclaimers by category
+required_disclaimers:
+  data_backup:
+    trigger_phrases:
+      - "backup"
+      - "restore"
+      - "data recovery"
+    disclaimer: "Data backup may not include all content. Review what is backed up."
+    placement: "near_content"
+
+  cloud_storage:
+    trigger_phrases:
+      - "cloud storage"
+      - "online storage"
+      - "remote storage"
+    disclaimer: "Requires internet connection. Data charges may apply."
+    placement: "near_content"
+
+  account_deletion:
+    trigger_phrases:
+      - "delete account"
+      - "remove account"
+      - "account removal"
+    disclaimer: "Account deletion is permanent and cannot be undone."
+    placement: "before_action"
+
+  payment:
+    trigger_phrases:
+      - "purchase"
+      - "subscription"
+      - "payment"
+      - "billing"
+    disclaimer: "Charges apply. See terms for cancellation policy."
+    placement: "before_action"
+
+# Privacy requirements (CCPA, state laws)
+privacy:
+  pii_categories:
+    - name: "personal_data"
+      description: "Any data that can identify an individual"
+      handling: "must_disclose_collection"
+
+    - name: "location_data"
+      description: "GPS or location information"
+      handling: "requires_explicit_consent"
+
+    - name: "biometric_data"
+      description: "Fingerprint, face recognition, etc."
+      handling: "requires_explicit_consent"
+
+  consent_requirements:
+    - type: "data_collection"
+      description: "Must inform users of data collection"
+      timing: "before_collection"
+
+    - type: "data_sharing"
+      description: "Must disclose third-party sharing"
+      timing: "before_sharing"
+
+# Age restrictions
+age_restrictions:
+  coppa:
+    applies_to_under: 13
+    requirements:
+      - "parental_consent_required"
+      - "limited_data_collection"
+      - "no_behavioral_advertising"
+
+# Accessibility requirements (ADA)
+accessibility:
+  requirements:
+    - "alt_text_for_images"
+    - "screen_reader_compatible"
+    - "sufficient_color_contrast"
+
+# Tone and formality
+tone:
+  formality_level: medium
+  avoid:
+    - "overly casual language"
+    - "slang"
+    - "regional dialects"
+  prefer:
+    - "clear and direct"
+    - "professional but approachable"
+    - "action-oriented"

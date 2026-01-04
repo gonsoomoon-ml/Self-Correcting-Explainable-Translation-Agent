@@ -1,0 +1,21 @@
+[
+  {
+    "key": "IDS_UI_REGEN_001",
+    "source_text": "데이터 동기화 중 오류가 발생했습니다. 네트워크 연결을 확인하시고, 문제가 지속되면 고객센터로 문의해 주세요. 자동 재시도는 5분 후에 진행됩니다.",
+    "source_lang": "ko",
+    "target_lang": "en-rUS",
+    "glossary": {
+      "동기화": "sync",
+      "네트워크": "network",
+      "고객센터": "Customer Support",
+      "자동 재시도": "automatic retry"
+    },
+    "style_guide": {
+      "tone": "concise and helpful",
+      "formality": "professional but friendly",
+      "error_style": "apologetic but not overly so, provide clear next steps"
+    },
+    "risk_profile": "US",
+    "product": "abc_cloud"
+  }
+]

@@ -1,0 +1,31 @@
+[
+  {
+    "key": "IDS_SAMPLE_ABOUT_001",
+    "source_text": "ABC 클라우드는 사용자의 ABC 계정과 연동된 정보에 대한 동기화와 백업/복원을 지원하는 서비스입니다.",
+    "source_lang": "ko",
+    "target_lang": "en-rUS",
+    "glossary": {
+      "ABC 클라우드": "ABC Cloud",
+      "ABC 계정": "ABC account",
+      "동기화": "sync",
+      "백업": "back up",
+      "복원": "restore"
+    },
+    "risk_profile": "US",
+    "product": "abc_cloud"
+  },
+  {
+    "key": "IDS_SAMPLE_BACKUP_002",
+    "source_text": "데이터를 백업하려면 설정 > 계정 및 백업 > ABC 클라우드로 이동하세요.",
+    "source_lang": "ko",
+    "target_lang": "en-rUS",
+    "glossary": {
+      "ABC 클라우드": "ABC Cloud",
+      "설정": "Settings",
+      "계정 및 백업": "Accounts and backup",
+      "백업": "back up"
+    },
+    "risk_profile": "US",
+    "product": "abc_cloud"
+  }
+]

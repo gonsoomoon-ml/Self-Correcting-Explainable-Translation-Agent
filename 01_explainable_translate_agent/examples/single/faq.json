@@ -1,0 +1,16 @@
+[
+  {
+    "key": "IDS_FAQ_SYNC_001",
+    "source_text": "ABC 클라우드에서 동기화가 되지 않을 경우, 네트워크 연결 상태를 확인하고 앱을 재시작해 주세요.",
+    "source_lang": "ko",
+    "target_lang": "en-rUS",
+    "glossary": {
+      "ABC 클라우드": "ABC Cloud",
+      "동기화": "sync",
+      "네트워크": "network",
+      "앱": "app"
+    },
+    "risk_profile": "US",
+    "product": "abc_cloud"
+  }
+]

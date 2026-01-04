@@ -1,0 +1,83 @@
+# Scoring and Decision Thresholds
+
+# Score scale: 0-5
+# Lower precision scales are more consistent for LLM-as-Judge
+scoring:
+  min_score: 0
+  max_score: 5
+  scale_description: |
+    5: Perfect - No issues
+    4: Minor issues - Auto-fixable (Pass)
+    3: Borderline - Human review needed
+    2: Significant issues - Must fix
+    1: Severe issues - Major rework
+    0: Unusable - Complete failure
+
+# Decision thresholds
+decision:
+  # Score >= pass_threshold: Auto-publish
+  pass_threshold: 4
+
+  # Score <= fail_threshold: Immediate block
+  fail_threshold: 2
+
+  # Score = 3 (between fail and pass): Regenerate or HITL
+  borderline_score: 3
+
+# Maker-Checker loop configuration
+regeneration:
+  max_attempts: 1  # Max regeneration attempts before HITL
+  include_feedback: true  # Include previous issues in regeneration prompt
+
+# Agent agreement thresholds
+agent_agreement:
+  # If score difference between agents >= this, escalate to HITL
+  disagreement_threshold: 2
+
+  # Minimum agreement score (0-1) to proceed without review
+  min_agreement_score: 0.6
+
+# Human-in-the-Loop (HITL) configuration
+hitl:
+  # Timeout waiting for PM review (seconds)
+  timeout_seconds: 300
+
+  # Poll interval for S3 feedback (seconds)
+  poll_interval_seconds: 3
+
+  # S3 bucket for review requests/responses
+  s3_bucket: "translation-hitl-reviews"
+  s3_prefix: "reviews/"
+
+# Guardrail thresholds
+guardrails:
+  input:
+    max_source_length: 5000  # Max characters
+    min_source_length: 1     # Min characters
+
+  runtime:
+    max_latency_ms: 60000    # Max latency per agent (1 minute)
+    max_total_latency_ms: 300000  # Max total workflow latency (5 minutes)
+    max_retries: 3
+
+  output:
+    require_all_agents_pass: true  # All agents must score >= pass_threshold
+    min_avg_score: 3.5  # Minimum average score across agents
+
+# Quality metrics for monitoring
+metrics:
+  # Track these metrics for dashboard
+  track:
+    - evaluation_latency_ms
+    - agent_scores
+    - agent_agreement
+    - retry_count
+    - hitl_escalation_rate
+    - pass_rate
+    - block_rate
+
+  # Alert thresholds
+  alerts:
+    block_rate_threshold: 0.2  # Alert if >20% blocked
+    hitl_rate_threshold: 0.3   # Alert if >30% require HITL
+    avg_latency_threshold_ms: 30000

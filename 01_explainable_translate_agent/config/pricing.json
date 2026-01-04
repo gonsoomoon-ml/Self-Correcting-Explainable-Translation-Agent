@@ -1,0 +1,53 @@
+{
+  "version": "2025-01",
+  "currency": "USD",
+  "unit": "per_million_tokens",
+  "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+  "models": {
+    "claude-opus-4-5": {
+      "model_id": "us.anthropic.claude-opus-4-5-20250514-v1:0",
+      "input": 5.00,
+      "output": 25.00,
+      "cache_write_5m": 6.25,
+      "cache_write_1h": 10.00,
+      "cache_read": 0.50,
+      "batch_input": 2.50,
+      "batch_output": 12.50
+    },
+    "claude-sonnet-4-5": {
+      "model_id": "us.anthropic.claude-sonnet-4-5-20250514-v1:0",
+      "input": 3.00,
+      "output": 15.00,
+      "cache_write_5m": 3.75,
+      "cache_write_1h": 6.00,
+      "cache_read": 0.30,
+      "batch_input": 1.50,
+      "batch_output": 7.50
+    },
+    "claude-sonnet-4": {
+      "model_id": "us.anthropic.claude-sonnet-4-20250514-v1:0",
+      "input": 3.00,
+      "output": 15.00,
+      "cache_write_5m": 3.75,
+      "cache_write_1h": 6.00,
+      "cache_read": 0.30,
+      "batch_input": 1.50,
+      "batch_output": 7.50
+    },
+    "claude-haiku-4-5": {
+      "model_id": "us.anthropic.claude-haiku-4-5-20250514-v1:0",
+      "input": 1.00,
+      "output": 5.00,
+      "cache_write_5m": 1.25,
+      "cache_write_1h": 2.00,
+      "cache_read": 0.10,
+      "batch_input": 0.50,
+      "batch_output": 2.50
+    }
+  },
+  "notes": {
+    "regional_premium": "10% for regional endpoints (vs global)",
+    "long_context_threshold": 200000,
+    "long_context_multiplier": 2.0
+  }
+}

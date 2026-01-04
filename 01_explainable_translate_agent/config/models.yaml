@@ -1,0 +1,93 @@
+# =============================================================================
+# AWS Bedrock Model Configuration
+# =============================================================================
+# 번역 에이전트 파이프라인에서 사용할 LLM 모델 설정
+# Global prefix (global.) 사용으로 Cross-region inference 지원
+
+# Default region
+region: us-west-2
+
+# =============================================================================
+# Model IDs Reference (High Quality Only: Opus 4.5, Sonnet 4.5)
+# =============================================================================
+# Opus 4.5:     global.anthropic.claude-opus-4-5-20251101-v1:0   (최고 품질)
+# Sonnet 4.5:   global.anthropic.claude-sonnet-4-5-20250929-v1:0 (고품질)
+
+# =============================================================================
+# Role-based Model Configurations
+# =============================================================================
+models:
+  # ---------------------------------------------------------------------------
+  # Translator - 메인 번역 (Opus 4.5)
+  # ---------------------------------------------------------------------------
+  # Opus 4.5: 최고 품질 번역, 복잡한 언어/문맥 처리, 미묘한 뉘앙스 보존
+  translator:
+    model_id: "global.anthropic.claude-opus-4-5-20251101-v1:0"
+    max_tokens: 2000
+    temperature: 0.1    # 일관성 우선, 약간의 자연스러움 허용
+    description: "Primary translation model - highest quality (Opus 4.5)"
+
+  # ---------------------------------------------------------------------------
+  # Back-translator - 역번역 검증 (Opus 4.5)
+  # ---------------------------------------------------------------------------
+  # Opus 4.5: 최고 품질 역번역으로 정확한 검증 보장
+  backtranslator:
+    model_id: "global.anthropic.claude-opus-4-5-20251101-v1:0"
+    max_tokens: 1000
+    temperature: 0.0    # 완전 결정적 (검증용 최대 충실도)
+    description: "Back-translation for verification - highest quality (Opus 4.5)"
+
+  # ---------------------------------------------------------------------------
+  # Accuracy Evaluator - 정확성 평가 (Opus 4.5)
+  # ---------------------------------------------------------------------------
+  # Opus 4.5: 세밀한 의미 분석, 용어집 검증, 역번역 비교에 최고 품질 필요
+  accuracy_evaluator:
+    model_id: "global.anthropic.claude-opus-4-5-20251101-v1:0"
+    max_tokens: 1500
+    temperature: 0.0    # 완전 결정적 (재현 가능한 점수)
+    description: "Accuracy and glossary evaluation - highest quality (Opus 4.5)"
+
+  # ---------------------------------------------------------------------------
+  # Compliance Evaluator - 컴플라이언스 평가 (Opus 4.5)
+  # ---------------------------------------------------------------------------
+  # Opus 4.5: 법률/규제 분석, 금칙어 탐지, 면책조항 검증에 최고 품질 필요
+  compliance_evaluator:
+    model_id: "global.anthropic.claude-opus-4-5-20251101-v1:0"
+    max_tokens: 1500
+    temperature: 0.0    # 완전 결정적 (법적 판단 일관성)
+    description: "Legal and safety compliance - regulatory analysis (Opus 4.5)"
+
+  # ---------------------------------------------------------------------------
+  # Quality Evaluator - 품질 평가 (Opus 4.5)
+  # ---------------------------------------------------------------------------
+  # Opus 4.5: 톤/격식 분석, 문화적 적합성, 미묘한 뉘앙스 평가에 최고 품질 필요
+  quality_evaluator:
+    model_id: "global.anthropic.claude-opus-4-5-20251101-v1:0"
+    max_tokens: 1500
+    temperature: 0.0    # 완전 결정적 (재현 가능한 품질 점수)
+    description: "Culture, tone, and A/B comparison - highest quality (Opus 4.5)"
+
+# =============================================================================
+# Retry Configuration (Exponential Backoff)
+# =============================================================================
+retry:
+  max_attempts: 3           # 최대 재시도 횟수
+  base_delay_seconds: 1     # 기본 대기 시간
+  max_delay_seconds: 10     # 최대 대기 시간
+  exponential_base: 2       # 1s → 2s → 4s (capped at 10s)
+
+# =============================================================================
+# Token Limits
+# =============================================================================
+token_limits:
+  max_input_tokens: 100000  # Claude의 컨텍스트 윈도우
+  max_output_tokens: 4096   # 최대 출력 토큰
+  warning_threshold: 0.8    # 80% 도달 시 경고 로깅
+
+# =============================================================================
+# Prompt Caching
+# =============================================================================
+# 동일 시스템 프롬프트 재사용 시 비용 절감
+caching:
+  prompt_cache_enabled: true
+  cache_type: "default"     # default | ephemeral
