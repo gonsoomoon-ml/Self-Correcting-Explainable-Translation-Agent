@@ -48,15 +48,15 @@ models:
     description: "Accuracy and glossary evaluation - highest quality (Opus 4.5)"
 
   # ---------------------------------------------------------------------------
-  # Compliance Evaluator - 컴플라이언스 평가 (Sonnet 4.5)
+  # Compliance Evaluator - 컴플라이언스 평가 (Opus 4.5)
   # ---------------------------------------------------------------------------
-  # Sonnet 4.5: 법률/규제 분석, 금칙어 탐지, 면책조항 검증
-  # Prompt caching 최소 요구사항: 1,024 tokens (Opus는 4,096 필요)
+  # Opus 4.5: 법률/규제 분석, 금칙어 탐지, 면책조항 검증에 최고 품질 필요
+  # Note: Prompt caching 미적용 (Opus는 4,096 토큰 필요, 현재 ~1,800 토큰)
   compliance_evaluator:
-    model_id: "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    model_id: "global.anthropic.claude-opus-4-5-20251101-v1:0"
     max_tokens: 1500
     temperature: 0.0    # 완전 결정적 (법적 판단 일관성)
-    description: "Legal and safety compliance - regulatory analysis (Sonnet 4.5, cache-optimized)"
+    description: "Legal and safety compliance - regulatory analysis (Opus 4.5)"
 
   # ---------------------------------------------------------------------------
   # Quality Evaluator - 품질 평가 (Opus 4.5)
@@ -104,10 +104,11 @@ token_limits:
 # - cache_write: +25% (캐시 생성 시)
 # - cache_read:  -90% (캐시 히트 시)
 #
-# ## 현재 시스템 프롬프트 크기
-# - Translator:    ~2,000 tokens (Opus: ❌ 미달, Sonnet: ✅)
-# - Compliance:    ~1,800 tokens (Opus: ❌ 미달, Sonnet: ✅)
-# - Quality:       ~1,500 tokens (Opus: ❌ 미달, Sonnet: ✅)
+# ## 현재 시스템 프롬프트 크기 (모든 에이전트 Opus 4.5 사용)
+# - Translator:    ~2,000 tokens (Opus: ❌ 미달)
+# - Compliance:    ~1,800 tokens (Opus: ❌ 미달)
+# - Quality:       ~1,500 tokens (Opus: ❌ 미달)
+# - Accuracy:      ~1,500 tokens (Opus: ❌ 미달)
 #
 # ## 권장 사항
 # - 캐싱이 필요한 에이전트는 Sonnet 4.5 사용 (1,024 토큰 최소)
