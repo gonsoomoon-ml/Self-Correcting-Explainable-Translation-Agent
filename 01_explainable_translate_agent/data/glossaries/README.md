@@ -60,37 +60,51 @@ ABC 클라우드: ABC Cloud
 
 ## 사용법
 
-### 코드에서 로드
+### 자동 로드 (권장)
+
+`translate_node`에서 `product`와 `target_lang`을 기반으로 **자동 로드**됩니다:
 
 ```python
-from src.utils import get_glossary
+# src/graph/nodes.py
+from src.utils.config import get_glossary
 
-# 제품 + 타겟 언어로 로드
-glossary = get_glossary("abc_cloud", "en-rUS")
-# Returns: {"ABC 클라우드": "ABC Cloud", "동기화": "sync", ...}
+async def translate_node(state: Dict[str, Any]) -> Dict[str, Any]:
+    unit = state["unit"]
 
+    # 자동 로드: data/glossaries/{product}/{lang}.yaml
+    glossary = get_glossary(unit.product, unit.target_lang)
+    # unit.product="abc_cloud", unit.target_lang="en-rUS" → en.yaml 로드
+
+    result = await translate(
+        source_text=unit.source_text,
+        glossary=glossary,  # 자동 로드된 용어집
+        ...
+    )
+```
+
+### 언어 코드 Fallback
+
+```python
 # 언어 fallback: en-rUS.yaml 없으면 en.yaml 사용
+glossary = get_glossary("abc_cloud", "en-rUS")
+# en-rUS.yaml 없으면 → en.yaml 로드
+
 glossary = get_glossary("abc_cloud", "en-rGB")
 # en-rGB.yaml 없으면 → en.yaml 로드
 ```
 
-### TranslationUnit에서 사용
+### TranslationUnit 예시
 
-```python
-from src.models import TranslationUnit
-from src.utils import get_glossary
-
-# 파일에서 용어집 로드
-glossary = get_glossary("abc_cloud", "en-rUS")
-
-unit = TranslationUnit(
-    key="IDS_FAQ_001",
-    source_text="ABC 클라우드에서 동기화가 되지 않습니다.",
-    target_lang="en-rUS",
-    glossary=glossary,  # 로드된 용어집 사용
-    product="abc_cloud"
-)
+```json
+{
+  "key": "IDS_FAQ_001",
+  "source_text": "ABC 클라우드에서 동기화가 되지 않습니다.",
+  "target_lang": "en-rUS",
+  "product": "abc_cloud"
+}
 ```
+
+> **Note**: `glossary` 필드는 더 이상 필요 없음. `product`로 자동 로드됨.
 
 ---
 

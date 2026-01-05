@@ -48,14 +48,15 @@ models:
     description: "Accuracy and glossary evaluation - highest quality (Opus 4.5)"
 
   # ---------------------------------------------------------------------------
-  # Compliance Evaluator - 컴플라이언스 평가 (Opus 4.5)
+  # Compliance Evaluator - 컴플라이언스 평가 (Sonnet 4.5)
   # ---------------------------------------------------------------------------
-  # Opus 4.5: 법률/규제 분석, 금칙어 탐지, 면책조항 검증에 최고 품질 필요
+  # Sonnet 4.5: 법률/규제 분석, 금칙어 탐지, 면책조항 검증
+  # Prompt caching 최소 요구사항: 1,024 tokens (Opus는 4,096 필요)
   compliance_evaluator:
-    model_id: "global.anthropic.claude-opus-4-5-20251101-v1:0"
+    model_id: "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
     max_tokens: 1500
     temperature: 0.0    # 완전 결정적 (법적 판단 일관성)
-    description: "Legal and safety compliance - regulatory analysis (Opus 4.5)"
+    description: "Legal and safety compliance - regulatory analysis (Sonnet 4.5, cache-optimized)"
 
   # ---------------------------------------------------------------------------
   # Quality Evaluator - 품질 평가 (Opus 4.5)
@@ -85,9 +86,36 @@ token_limits:
   warning_threshold: 0.8    # 80% 도달 시 경고 로깅
 
 # =============================================================================
-# Prompt Caching
+# Prompt Caching (AWS Bedrock)
 # =============================================================================
-# 동일 시스템 프롬프트 재사용 시 비용 절감
+# 동일 시스템 프롬프트 재사용 시 비용 90% 절감
+#
+# ## 최소 토큰 요구사항 (모델별)
+# ┌─────────────────────┬──────────────┬────────────────────┐
+# │ 모델                │ 최소 토큰    │ 최대 체크포인트    │
+# ├─────────────────────┼──────────────┼────────────────────┤
+# │ Claude Opus 4.5     │ 4,096        │ 4                  │
+# │ Claude Sonnet 4.5   │ 1,024        │ 4                  │
+# │ Claude 3.5 Haiku    │ 2,048        │ 4                  │
+# │ Amazon Nova         │ 1,024        │ 4                  │
+# └─────────────────────┴──────────────┴────────────────────┘
+#
+# ## 비용
+# - cache_write: +25% (캐시 생성 시)
+# - cache_read:  -90% (캐시 히트 시)
+#
+# ## 현재 시스템 프롬프트 크기
+# - Translator:    ~2,000 tokens (Opus: ❌ 미달, Sonnet: ✅)
+# - Compliance:    ~1,800 tokens (Opus: ❌ 미달, Sonnet: ✅)
+# - Quality:       ~1,500 tokens (Opus: ❌ 미달, Sonnet: ✅)
+#
+# ## 권장 사항
+# - 캐싱이 필요한 에이전트는 Sonnet 4.5 사용 (1,024 토큰 최소)
+# - Opus 4.5는 4,096+ 토큰 프롬프트에서만 캐싱 적용
+# - risk_profile을 system prompt에 포함하여 캐싱 최적화
+#
+# 참고: https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html
+#
 caching:
   prompt_cache_enabled: true
-  cache_type: "default"     # default | ephemeral
+  cache_type: "default"     # default (영구) | ephemeral (5분)

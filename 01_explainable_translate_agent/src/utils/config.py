@@ -152,6 +152,45 @@ class ConfigLoader:
         # Return empty glossary if not found
         return {}
 
+    def load_style_guide(
+        self,
+        product: str,
+        target_lang: str
+    ) -> Dict[str, str]:
+        """
+        Load a product-specific style guide for a target language.
+
+        Args:
+            product: Product identifier (e.g., "abc_cloud")
+            target_lang: Target language code (e.g., "en", "en-rUS", "ja")
+
+        Returns:
+            Style guide dict (e.g., {"tone": "formal", "voice": "active"})
+        """
+        data_dir = self.config_dir.parent / "data"
+        style_dir = data_dir / "style_guides" / product
+
+        # Normalize language code: "en-rUS" → "en"
+        base_lang = target_lang.split("-")[0]
+
+        candidates = [
+            style_dir / f"{target_lang}.yaml",  # exact match (en-rUS.yaml)
+            style_dir / f"{target_lang}.yml",
+            style_dir / f"{base_lang}.yaml",    # base language (en.yaml)
+            style_dir / f"{base_lang}.yml",
+        ]
+
+        for path in candidates:
+            if path.exists():
+                with open(path, "r", encoding="utf-8") as f:
+                    data = yaml.safe_load(f)
+                    if data:
+                        return {k: v for k, v in data.items() if not k.startswith("#")}
+                    return {}
+
+        # Return empty style guide if not found
+        return {}
+
     def list_glossaries(self) -> List[Dict[str, Any]]:
         """List available glossaries with their products and languages"""
         data_dir = self.config_dir.parent / "data"
@@ -252,3 +291,22 @@ def get_glossary(product: str, target_lang: str) -> Dict[str, str]:
     """
     loader = get_config_loader()
     return loader.load_glossary(product, target_lang)
+
+
+def get_style_guide(product: str, target_lang: str) -> Dict[str, str]:
+    """
+    Convenience function to get a style guide.
+
+    Args:
+        product: Product identifier (e.g., "abc_cloud")
+        target_lang: Target language code (e.g., "en", "en-rUS", "ja")
+
+    Returns:
+        Style guide dict (e.g., {"tone": "formal", "voice": "active"})
+
+    Example:
+        style = get_style_guide("abc_cloud", "en-rUS")
+        # Returns: {"tone": "formal", "voice": "active", ...}
+    """
+    loader = get_config_loader()
+    return loader.load_style_guide(product, target_lang)

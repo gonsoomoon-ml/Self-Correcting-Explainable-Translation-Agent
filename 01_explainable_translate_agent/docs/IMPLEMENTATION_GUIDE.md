@@ -18,6 +18,9 @@
 10. [워크플로우 상세](#10-워크플로우-상세)
 11. [Best Practices](#11-best-practices)
 12. [참고 자료](#12-참고-자료)
+13. [용어집 및 스타일 가이드 관리](#13-용어집-및-스타일-가이드-관리)
+14. [디버그 모드](#14-디버그-모드)
+15. [프롬프트 캐싱](#15-프롬프트-캐싱-prompt-caching)
 
 ---
 
@@ -1464,8 +1467,329 @@ models:
 
 ---
 
+## 13. 용어집 및 스타일 가이드 관리
+
+### 13.1 개요
+
+번역 일관성을 위해 용어집(Glossary)과 스타일 가이드(Style Guide)를 외부 파일로 관리합니다.
+`product`와 `target_lang`을 기반으로 자동 로드됩니다.
+
+### 13.2 디렉토리 구조
+
+```
+data/
+├── glossaries/
+│   └── abc_cloud/
+│       ├── en.yaml          # 영어 용어집
+│       ├── ja.yaml          # 일본어 용어집
+│       └── ...
+└── style_guides/
+    └── abc_cloud/
+        ├── en.yaml          # 영어 스타일 가이드
+        ├── ja.yaml          # 일본어 스타일 가이드
+        └── ...
+```
+
+### 13.3 용어집 형식
+
+```yaml
+# data/glossaries/abc_cloud/en.yaml
+
+# ABC Cloud 용어집 (Korean → English)
+# 번역 시 일관성을 위한 필수 용어 매핑
+
+# 제품명
+ABC 클라우드: ABC Cloud
+ABC 계정: ABC account
+
+# 핵심 기능
+동기화: sync
+백업: backup
+복원: restore
+
+# UI 요소
+설정: Settings
+앱: app
+```
+
+### 13.4 스타일 가이드 형식
+
+```yaml
+# data/style_guides/abc_cloud/en.yaml
+
+# ABC Cloud 스타일 가이드 (English)
+tone: formal
+voice: active
+formality: professional
+sentence_style: concise
+```
+
+### 13.5 자동 로드 로직
+
+`translate_node`에서 `product`와 `target_lang`을 기반으로 자동 로드:
+
+```python
+# src/graph/nodes.py
+
+from src.utils.config import get_glossary, get_style_guide
+
+async def translate_node(state: Dict[str, Any]) -> Dict[str, Any]:
+    unit: TranslationUnit = state["unit"]
+
+    # 용어집/스타일 가이드 자동 로드
+    glossary = get_glossary(unit.product, unit.target_lang)
+    style_guide = get_style_guide(unit.product, unit.target_lang)
+
+    result = await translate(
+        source_text=unit.source_text,
+        glossary=glossary,
+        style_guide=style_guide,
+        ...
+    )
+```
+
+### 13.6 프롬프트 주입
+
+`translator_tool.py`에서 용어집과 스타일 가이드를 시스템 프롬프트에 주입:
+
+```python
+def _build_system_prompt(...):
+    # 용어집 포맷
+    if glossary:
+        glossary_lines = [f"- {src} → {tgt}" for src, tgt in glossary.items()]
+        glossary_text = "\n".join(glossary_lines)
+    else:
+        glossary_text = "(용어집 없음)"
+
+    # 스타일 가이드 포맷
+    if style_guide:
+        style_lines = [f"- {k}: {v}" for k, v in style_guide.items()]
+        style_text = "\n".join(style_lines)
+    else:
+        style_text = "(기본 스타일)"
+
+    # 프롬프트 템플릿에 주입
+    return load_prompt(
+        "translator",
+        glossary=glossary_text,
+        style_guide=style_text,
+        ...
+    )
+```
+
+### 13.7 언어 코드 정규화
+
+`en-rUS` → `en`으로 정규화하여 파일 검색:
+
+```python
+# src/utils/config.py
+
+def load_glossary(self, product: str, target_lang: str):
+    base_lang = target_lang.split("-")[0]  # "en-rUS" → "en"
+
+    candidates = [
+        f"{target_lang}.yaml",  # 정확히 일치 (en-rUS.yaml)
+        f"{base_lang}.yaml",    # 기본 언어 (en.yaml)
+    ]
+```
+
+---
+
+## 14. 디버그 모드
+
+### 14.1 --debug 옵션
+
+프롬프트 내용을 확인하려면 `--debug` 플래그 사용:
+
+```bash
+uv run --no-sync python test_workflow.py --input examples/single/faq.json --debug
+```
+
+### 14.2 출력 예시
+
+```
+============================================================
+[Translator] (IDS_FAQ_SYNC_001) SYSTEM PROMPT
+============================================================
+## Role
+<role>
+You are a professional translator specializing in ABC Cloud product documentation.
+Translate the source text from ko to en-rUS.
+</role>
+
+## Glossary
+<glossary>
+Apply these term mappings exactly:
+
+- ABC 클라우드 → ABC Cloud
+- 동기화 → sync
+- 네트워크 → network
+- 앱 → app
+</glossary>
+
+## Style Guide
+<style_guide>
+- tone: formal
+- voice: active
+- formality: professional
+- sentence_style: concise
+</style_guide>
+...
+============================================================
+
+============================================================
+[Translator] (IDS_FAQ_SYNC_001) USER PROMPT
+============================================================
+<source_text>
+ABC 클라우드에서 동기화가 되지 않을 경우, 네트워크 연결 상태를 확인하고 앱을 재시작해 주세요.
+</source_text>
+============================================================
+```
+
+### 14.3 배치 실행 시 key 구분
+
+배치 실행 시 각 항목의 key가 로그에 포함되어 구분 가능:
+
+```
+[Translator] (IDS_UI_BACKUP_BTN) SYSTEM PROMPT
+[Translator] (IDS_UI_BACKUP_BTN) USER PROMPT
+[Translator] (IDS_FAQ_RESTORE_001) SYSTEM PROMPT
+[Translator] (IDS_FAQ_RESTORE_001) USER PROMPT
+```
+
+### 14.4 구현 위치
+
+- `test_workflow.py`: `--debug` 인자 파싱 및 로그 레벨 설정
+- `src/tools/translator_tool.py`: 시스템/유저 프롬프트 DEBUG 로깅
+
+---
+
+## 15. 프롬프트 캐싱 (Prompt Caching)
+
+### 15.1 개요
+
+AWS Bedrock의 프롬프트 캐싱을 사용하여 동일한 시스템 프롬프트 재사용 시 **비용 90% 절감**.
+
+### 15.2 모델별 최소 토큰 요구사항
+
+| 모델 | 최소 토큰 | 최대 체크포인트 | 캐싱 지원 |
+|------|----------|----------------|----------|
+| **Claude Opus 4.5** | 4,096 | 4 | ✅ |
+| **Claude Sonnet 4.5** | 1,024 | 4 | ✅ |
+| Claude 3.5 Haiku | 2,048 | 4 | ✅ |
+| Amazon Nova | 1,024 | 4 | ✅ |
+
+### 15.3 비용 구조
+
+| 유형 | 비용 | 설명 |
+|------|------|------|
+| `cache_write` | +25% | 캐시 생성 시 (첫 요청) |
+| `cache_read` | -90% | 캐시 히트 시 (후속 요청) |
+
+### 15.4 현재 설정
+
+시스템 프롬프트 크기와 모델별 캐싱 적용 여부:
+
+| 에이전트 | 프롬프트 크기 | 현재 모델 | 캐싱 |
+|----------|-------------|----------|------|
+| Translator | ~2,000 tokens | Opus 4.5 | ❌ (4,096 필요) |
+| Compliance | ~1,800 tokens | **Sonnet 4.5** | ✅ |
+| Quality | ~1,500 tokens | Opus 4.5 | ❌ (4,096 필요) |
+| Accuracy | ~1,500 tokens | Opus 4.5 | ❌ (4,096 필요) |
+
+> **Note**: Compliance 에이전트는 캐싱 최적화를 위해 Sonnet 4.5로 설정됨
+
+### 15.5 캐싱 최적화 전략
+
+#### risk_profile을 System Prompt에 포함
+
+```python
+# src/tools/compliance_evaluator_tool.py
+
+def _build_system_prompt(
+    source_lang: str,
+    target_lang: str,
+    risk_profile: Optional[Dict[str, Any]] = None,  # 캐시 대상
+    content_context: str = "FAQ"
+) -> str:
+    """
+    risk_profile을 시스템 프롬프트에 포함하여 캐싱 최적화:
+    - 같은 국가의 번역을 여러 개 처리할 때 시스템 프롬프트가 캐시됨
+    - 금칙어/면책문구 목록이 매번 재전송되지 않음
+    """
+    base_prompt = load_prompt("compliance_evaluator", ...)
+
+    risk_section = f"""
+## Risk Profile
+<risk_profile>
+{json.dumps(risk_profile, indent=2)}
+</risk_profile>
+"""
+    return base_prompt + risk_section
+```
+
+#### User Prompt 최소화
+
+```python
+def _build_user_message(source_text: str, translation: str) -> str:
+    """User prompt는 매번 변경되는 내용만 포함"""
+    return f"""
+<source_text>{source_text}</source_text>
+<translation>{translation}</translation>
+"""
+```
+
+### 15.6 메트릭 확인
+
+결과 JSON에서 캐싱 메트릭 확인:
+
+```json
+{
+  "metrics": {
+    "token_usage": {
+      "input": 4325,
+      "output": 2362,
+      "cache_read": 2021,   // ✅ 캐시 히트
+      "cache_write": 0
+    }
+  }
+}
+```
+
+### 15.7 배치 처리 시 캐싱 효과
+
+```
+같은 국가(US) 번역 100개 처리:
+
+Request 1: System(1,800 + risk_profile) → cache_write
+Request 2-100: System(cache_read) → 90% 비용 절감
+
+예상 절감:
+- 일반: 1,800 tokens × 100 = 180,000 tokens
+- 캐싱: 1,800 + (1,800 × 0.1 × 99) = 19,620 tokens
+- 절감: ~89%
+```
+
+### 15.8 설정 파일
+
+`config/models.yaml`에서 캐싱 설정:
+
+```yaml
+caching:
+  prompt_cache_enabled: true
+  cache_type: "default"  # default (영구) | ephemeral (5분)
+```
+
+### 15.9 참고 자료
+
+- [AWS Bedrock Prompt Caching](https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html)
+
+---
+
 ## 변경 이력
 
 | 버전 | 날짜 | 변경 내용 |
 |------|------|-----------|
 | 1.0 | 2025-01-03 | 초안 작성 |
+| 1.1 | 2026-01-05 | 용어집/스타일 가이드 자동 로드, --debug 옵션 추가 |
+| 1.2 | 2026-01-05 | 프롬프트 캐싱 문서 추가, Compliance를 Sonnet 4.5로 변경 |

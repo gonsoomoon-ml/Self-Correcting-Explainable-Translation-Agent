@@ -28,6 +28,7 @@ from src.tools import (
 )
 from sops.evaluation_gate import EvaluationGateSOP, EvaluationGateConfig
 from sops.regeneration import RegenerationSOP
+from src.utils.config import get_glossary, get_style_guide, get_risk_profile
 
 logger = logging.getLogger(__name__)
 
@@ -54,17 +55,22 @@ async def translate_node(state: Dict[str, Any]) -> Dict[str, Any]:
     feedback: Optional[str] = state.get("feedback")
     num_candidates: int = state.get("num_candidates", 1)
 
-    logger.info(f"번역 시작: {unit.key} ({unit.source_lang} → {unit.target_lang})")
+    # 용어집/스타일 가이드 로드 (data/{glossaries,style_guides}/{product}/{lang}.yaml)
+    # TODO: inline glossary/style_guide 지원 제거 예정
+    glossary = get_glossary(unit.product, unit.target_lang)
+    style_guide = get_style_guide(unit.product, unit.target_lang)
+    logger.info(f"번역 시작: {unit.key} ({unit.source_lang} → {unit.target_lang}), 용어집: {len(glossary)}개, 스타일: {len(style_guide)}개")
 
     try:
         result: TranslationResult = await translate(
             source_text=unit.source_text,
             source_lang=unit.source_lang,
             target_lang=unit.target_lang,
-            glossary=unit.glossary,
-            style_guide=unit.style_guide,
+            glossary=glossary,
+            style_guide=style_guide,
             feedback=feedback,
-            num_candidates=num_candidates
+            num_candidates=num_candidates,
+            key=unit.key
         )
 
         state["translation_result"] = result
@@ -153,9 +159,12 @@ async def evaluate_node(state: Dict[str, Any]) -> Dict[str, Any]:
     backtranslation = backtranslation_result.backtranslation
     candidates = translation_result.candidates
 
+    # 리스크 프로파일 로드 (data/risk_profiles/{country}.yaml)
+    risk_profile = get_risk_profile(unit.risk_profile)
+
     eval_start_time = datetime.now()
 
-    logger.info(f"[{unit.key}] 평가 시작 (3개 에이전트 병렬)")
+    logger.info(f"[{unit.key}] 평가 시작 (3개 에이전트 병렬), 리스크 프로파일: {unit.risk_profile}")
 
     try:
         # 3개 에이전트 병렬 실행
@@ -173,7 +182,7 @@ async def evaluate_node(state: Dict[str, Any]) -> Dict[str, Any]:
                 translation=translation,
                 source_lang=unit.source_lang,
                 target_lang=unit.target_lang,
-                risk_profile=None,  # TODO: 리스크 프로파일 로드
+                risk_profile=risk_profile,
                 content_context="FAQ"
             ),
             evaluate_quality(

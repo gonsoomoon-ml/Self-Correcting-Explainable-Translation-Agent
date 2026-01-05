@@ -15,37 +15,6 @@ languages:
     locale: en-US
     formality: medium
     direction: ltr
-    regions:
-      africa:
-        - Algeria, Botswana, Burkina Faso, Cape Verde, Chad, Comoros
-        - Djibouti, Egypt, Equatorial Guinea, Eritrea, Ethiopia, Gambia
-        - Ghana, Guinea-Bissau, Kenya, Lesotho, Liberia, Madagascar
-        - Malawi, Mali, Mauritania, Mauritius, Morocco, Namibia
-        - Niger, Nigeria, Reunion, Rwanda, Sao Tome and Principe
-        - Seychelles, Sierra Leone, Somalia, South Africa, South Sudan
-        - Sudan, Swaziland, Tanzania, Tunisia, Uganda, Zambia
-      asia_pacific:
-        - Australia, Bangladesh, Bhutan, Brunei Darussalam, Cambodia
-        - Cook Islands, Fiji, French Polynesia, India, Kiribati
-        - Lao PDR, Malaysia, Maldives, Micronesia, Marshall Islands
-        - Mongolia, Myanmar, Nauru, Nepal, New Caledonia, New Zealand
-        - Niue, Palau, Papua New Guinea, Philippines, Samoa, Singapore
-        - Solomon Islands, Sri Lanka, Tajikistan, Timor-Leste, Tonga
-        - Turkmenistan, Tuvalu, Vanuatu
-      americas:
-        - Anguilla, Antigua and Barbuda, Aruba, Bahamas, Barbados
-        - Belize, Bermuda, British Virgin Islands, Cayman Islands
-        - Cuba, Dominica, French Guiana, Grenada, Guyana, Haiti
-        - Jamaica, Montserrat, Netherlands Antilles, Saint Kitts and Nevis
-        - Saint Lucia, Saint Vincent and the Grenadines, Suriname
-        - Trinidad and Tobago, Turks and Caicos Islands, United States
-      middle_east:
-        - Afghanistan, Iran, Israel, Jordan, Kuwait, Lebanon
-        - Oman, Pakistan, Qatar, United Arab Emirates
-      europe:
-        - Albania, Andorra, Faroe Islands, Gibraltar, Greenland
-        - Guadeloupe, Holy See, Iceland, Ireland, Kosovo
-        - Kyrgyzstan, Malta, Monaco, San Marino, Turkiye
 
   # ---------------------------------------------------------------------------
   # 2. English (en-rGB) - 영국 영어
@@ -55,8 +24,6 @@ languages:
     locale: en-GB
     formality: medium
     direction: ltr
-    regions:
-      - United Kingdom
 
   # ---------------------------------------------------------------------------
   # 3. French (fr) - 프랑스어
@@ -66,12 +33,6 @@ languages:
     locale: fr-FR
     formality: high  # Vous form
     direction: ltr
-    regions:
-      - Algeria, Benin, Burkina Faso, Burundi, Cameroon
-      - Central African Republic, Congo, Cote d'Ivoire, DR Congo
-      - Gabon, Gambia, Guinea, Madagascar, Malawi, Mali
-      - Mauritania, Morocco, Rwanda, Senegal, Tunisia
-      - Canada, Belgium, France, Luxembourg, Switzerland
 
   # ---------------------------------------------------------------------------
   # 4. Portuguese (pt) - 포르투갈어
@@ -81,8 +42,6 @@ languages:
     locale: pt-PT
     formality: high
     direction: ltr
-    regions:
-      - Angola, Mozambique, Brazil, Portugal
 
   # ---------------------------------------------------------------------------
   # 5. Arabic (ar) - 아랍어
@@ -92,10 +51,6 @@ languages:
     locale: ar-SA
     formality: high
     direction: rtl
-    regions:
-      - Egypt, Libya, Morocco, Bahrain, Iraq, Jordan
-      - Kuwait, Lebanon, Oman, Qatar, Saudi Arabia
-      - Syria, United Arab Emirates, Yemen
 
   # ---------------------------------------------------------------------------
   # 6. Spanish (es) - 스페인어
@@ -105,11 +60,6 @@ languages:
     locale: es-ES
     formality: high  # Usted form
     direction: ltr
-    regions:
-      - Argentina, Bolivia, Chile, Colombia, Costa Rica
-      - Dominican Republic, Ecuador, El Salvador, Guatemala
-      - Honduras, Mexico, Nicaragua, Panama, Paraguay, Peru
-      - Puerto Rico, Uruguay, Venezuela, Spain
 
   # ---------------------------------------------------------------------------
   # 7. Chinese Simplified (zh-CN) - 중국어 간체
@@ -119,8 +69,6 @@ languages:
     locale: zh-CN
     formality: medium
     direction: ltr
-    regions:
-      - China (Mainland), Singapore
 
   # ---------------------------------------------------------------------------
   # 8. Chinese Hong Kong (zh-HK) - 홍콩 중국어
@@ -130,8 +78,6 @@ languages:
     locale: zh-HK
     formality: medium
     direction: ltr
-    regions:
-      - Hong Kong, Macao
 
   # ---------------------------------------------------------------------------
   # 9. Chinese Traditional (zh-TW) - 중국어 번체
@@ -141,8 +87,6 @@ languages:
     locale: zh-TW
     formality: medium
     direction: ltr
-    regions:
-      - Taiwan
 
   # ---------------------------------------------------------------------------
   # 10. Indonesian (id) - 인도네시아어
@@ -152,8 +96,6 @@ languages:
     locale: id-ID
     formality: medium
     direction: ltr
-    regions:
-      - Indonesia
 
   # ---------------------------------------------------------------------------
   # 11. Japanese (ja) - 일본어
@@ -163,8 +105,6 @@ languages:
     locale: ja-JP
     formality: high  # Keigo (경어) required
     direction: ltr
-    regions:
-      - Japan
 
   # ---------------------------------------------------------------------------
   # 13. Malay (ms) - 말레이어
@@ -174,8 +114,6 @@ languages:
     locale: ms-MY
     formality: medium
     direction: ltr
-    regions:
-      - Malaysia
 
   # ---------------------------------------------------------------------------
   # 14. Vietnamese (vi) - 베트남어
@@ -185,8 +123,6 @@ languages:
     locale: vi-VN
     formality: high
     direction: ltr
-    regions:
-      - Vietnam
 
   # ---------------------------------------------------------------------------
   # 15. Thai (th) - 태국어
@@ -196,8 +132,6 @@ languages:
     locale: th-TH
     formality: high
     direction: ltr
-    regions:
-      - Thailand
 
   # ---------------------------------------------------------------------------
   # 16. Persian (fa) - 페르시아어
@@ -207,8 +141,6 @@ languages:
     locale: fa-IR
     formality: high
     direction: rtl
-    regions:
-      - Iran
 
   # ---------------------------------------------------------------------------
   # 17. Hebrew (he) - 히브리어
@@ -218,8 +150,6 @@ languages:
     locale: he-IL
     formality: medium
     direction: rtl
-    regions:
-      - Israel
 
   # ---------------------------------------------------------------------------
   # 18. Urdu (ur) - 우르두어
@@ -229,8 +159,6 @@ languages:
     locale: ur-PK
     formality: high
     direction: rtl
-    regions:
-      - Pakistan
 
   # ---------------------------------------------------------------------------
   # 19. German (de) - 독일어
@@ -240,8 +168,6 @@ languages:
     locale: de-DE
     formality: high  # Sie form
     direction: ltr
-    regions:
-      - Austria, Germany, Liechtenstein, Switzerland
 
   # ---------------------------------------------------------------------------
   # 20. Dutch (nl) - 네덜란드어
@@ -251,8 +177,6 @@ languages:
     locale: nl-NL
     formality: medium
     direction: ltr
-    regions:
-      - Belgium, Netherlands
 
   # ---------------------------------------------------------------------------
   # 21. Croatian (hr) - 크로아티아어
@@ -262,8 +186,6 @@ languages:
     locale: hr-HR
     formality: high
     direction: ltr
-    regions:
-      - Bosnia and Herzegovina, Croatia
 
   # ---------------------------------------------------------------------------
   # 22. Bulgarian (bg) - 불가리아어
@@ -273,8 +195,6 @@ languages:
     locale: bg-BG
     formality: high
     direction: ltr
-    regions:
-      - Bulgaria
 
   # ---------------------------------------------------------------------------
   # 23. Greek (el) - 그리스어
@@ -284,8 +204,6 @@ languages:
     locale: el-GR
     formality: high
     direction: ltr
-    regions:
-      - Cyprus, Greece
 
   # ---------------------------------------------------------------------------
   # 24. Czech (cs) - 체코어
@@ -295,8 +213,6 @@ languages:
     locale: cs-CZ
     formality: high
     direction: ltr
-    regions:
-      - Czech Republic
 
   # ---------------------------------------------------------------------------
   # 25. Danish (da) - 덴마크어
@@ -306,8 +222,6 @@ languages:
     locale: da-DK
     formality: low
     direction: ltr
-    regions:
-      - Denmark
 
   # ---------------------------------------------------------------------------
   # 26. Estonian (et) - 에스토니아어
@@ -317,8 +231,6 @@ languages:
     locale: et-EE
     formality: medium
     direction: ltr
-    regions:
-      - Estonia
 
   # ---------------------------------------------------------------------------
   # 27. Finnish (fi) - 핀란드어
@@ -328,8 +240,6 @@ languages:
     locale: fi-FI
     formality: low
     direction: ltr
-    regions:
-      - Finland
 
   # ---------------------------------------------------------------------------
   # 28. Macedonian (mk) - 마케도니아어
@@ -339,8 +249,6 @@ languages:
     locale: mk-MK
     formality: high
     direction: ltr
-    regions:
-      - North Macedonia (FYROM)
 
   # ---------------------------------------------------------------------------
   # 29. Hungarian (hu) - 헝가리어
@@ -350,8 +258,6 @@ languages:
     locale: hu-HU
     formality: high
     direction: ltr
-    regions:
-      - Hungary
 
   # ---------------------------------------------------------------------------
   # 30. Irish (ga) - 아일랜드어
@@ -361,8 +267,6 @@ languages:
     locale: ga-IE
     formality: medium
     direction: ltr
-    regions:
-      - Ireland
 
   # ---------------------------------------------------------------------------
   # 31. Italian (it) - 이탈리아어
@@ -372,8 +276,6 @@ languages:
     locale: it-IT
     formality: high
     direction: ltr
-    regions:
-      - Italy
 
   # ---------------------------------------------------------------------------
   # 32. Kazakh (kk) - 카자흐어
@@ -383,8 +285,6 @@ languages:
     locale: kk-KZ
     formality: high
     direction: ltr
-    regions:
-      - Kazakhstan
 
   # ---------------------------------------------------------------------------
   # 33. Latvian (lv) - 라트비아어
@@ -394,8 +294,6 @@ languages:
     locale: lv-LV
     formality: high
     direction: ltr
-    regions:
-      - Latvia
 
   # ---------------------------------------------------------------------------
   # 34. Lithuanian (lt) - 리투아니아어
@@ -405,8 +303,6 @@ languages:
     locale: lt-LT
     formality: high
     direction: ltr
-    regions:
-      - Lithuania
 
   # ---------------------------------------------------------------------------
   # 35. Romanian (ro) - 루마니아어
@@ -416,8 +312,6 @@ languages:
     locale: ro-RO
     formality: high
     direction: ltr
-    regions:
-      - Moldova, Romania
 
   # ---------------------------------------------------------------------------
   # 36. Russian (ru) - 러시아어
@@ -427,8 +321,6 @@ languages:
     locale: ru-RU
     formality: high
     direction: ltr
-    regions:
-      - Armenia, Azerbaijan, Belarus, Georgia, Kazakhstan, Russia
 
   # ---------------------------------------------------------------------------
   # 37. Serbian (sr) - 세르비아어
@@ -438,8 +330,6 @@ languages:
     locale: sr-RS
     formality: high
     direction: ltr
-    regions:
-      - Montenegro, Serbia
 
   # ---------------------------------------------------------------------------
   # 38. Norwegian (nb) - 노르웨이어
@@ -449,8 +339,6 @@ languages:
     locale: nb-NO
     formality: low
     direction: ltr
-    regions:
-      - Norway
 
   # ---------------------------------------------------------------------------
   # 39. Polish (pl) - 폴란드어
@@ -460,8 +348,6 @@ languages:
     locale: pl-PL
     formality: high
     direction: ltr
-    regions:
-      - Poland
 
   # ---------------------------------------------------------------------------
   # 40. Slovak (sk) - 슬로바키아어
@@ -471,8 +357,6 @@ languages:
     locale: sk-SK
     formality: high
     direction: ltr
-    regions:
-      - Slovakia
 
   # ---------------------------------------------------------------------------
   # 41. Slovenian (sl) - 슬로베니아어
@@ -482,8 +366,6 @@ languages:
     locale: sl-SI
     formality: high
     direction: ltr
-    regions:
-      - Slovenia
 
   # ---------------------------------------------------------------------------
   # 42. Swedish (sv) - 스웨덴어
@@ -493,8 +375,6 @@ languages:
     locale: sv-SE
     formality: low  # Du reform
     direction: ltr
-    regions:
-      - Sweden
 
   # ---------------------------------------------------------------------------
   # 43. Turkish (tr) - 터키어
@@ -504,8 +384,6 @@ languages:
     locale: tr-TR
     formality: high
     direction: ltr
-    regions:
-      - Turkiye
 
   # ---------------------------------------------------------------------------
   # 44. Ukrainian (uk) - 우크라이나어
@@ -515,8 +393,6 @@ languages:
     locale: uk-UA
     formality: high
     direction: ltr
-    regions:
-      - Ukraine
 
   # ---------------------------------------------------------------------------
   # 45. Uzbek (uz) - 우즈베크어
@@ -526,8 +402,6 @@ languages:
     locale: uz-UZ
     formality: high
     direction: ltr
-    regions:
-      - Uzbekistan
 
 
 # =============================================================================
@@ -539,5 +413,3 @@ source:
   locale: ko-KR
   formality: high
   direction: ltr
-  regions:
-    - Korea

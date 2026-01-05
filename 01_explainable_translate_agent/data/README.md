@@ -11,7 +11,11 @@
 data/
 ├── README.md
 ├── glossaries/       # 도메인별 용어집 (에이전트 참조 지식)
-│   └── abc_cloud/    # ABC Cloud 용어집 (예시)
+│   └── abc_cloud/    # ABC Cloud 용어집
+│       └── en.yaml   # 영어 용어집
+├── style_guides/     # 언어별 스타일 가이드 (에이전트 참조 지식)
+│   └── abc_cloud/    # ABC Cloud 스타일 가이드
+│       └── en.yaml   # 영어 스타일 가이드
 ├── risk_profiles/    # 국가별 규제 규칙 (에이전트 참조 지식)
 │   ├── US.yaml       # 미국 규제 (FTC, CCPA, COPPA)
 │   └── DEFAULT.yaml  # 기본 규칙
@@ -38,14 +42,37 @@ data/
 
 도메인별 용어집. 번역 시 일관성 보장. Translator, Accuracy, Quality 에이전트가 사용.
 
-```json
-{
-  "ABC 클라우드": "ABC Cloud",
-  "ABC 계정": "ABC account",
-  "동기화": "sync",
-  "백업": "backup"
-}
+```yaml
+# en.yaml 예시
+ABC 클라우드: ABC Cloud
+ABC 계정: ABC account
+동기화: sync
+백업: backup
 ```
+
+> **자동 로드**: `product`와 `target_lang`을 기반으로 자동 로드됨
+> ```python
+> glossary = get_glossary("abc_cloud", "en-rUS")  # en.yaml 로드
+> ```
+
+> 상세 설명: [glossaries/README.md](glossaries/README.md)
+
+### style_guides/
+
+언어별 스타일 가이드. Translator 에이전트가 사용.
+
+```yaml
+# en.yaml 예시
+tone: formal
+voice: active
+formality: professional
+sentence_style: concise
+```
+
+> **자동 로드**: `product`와 `target_lang`을 기반으로 자동 로드됨
+> ```python
+> style_guide = get_style_guide("abc_cloud", "en-rUS")  # en.yaml 로드
+> ```
 
 ### risk_profiles/
 

@@ -26,7 +26,8 @@ async def translate(
     style_guide: Optional[Dict[str, str]] = None,
     feedback: Optional[str] = None,
     num_candidates: int = 1,
-    use_cache: bool = True
+    use_cache: bool = True,
+    key: Optional[str] = None
 ) -> TranslationResult:
     """
     소스 텍스트를 대상 언어로 번역.
@@ -62,7 +63,8 @@ async def translate(
         source_lang=source_lang,
         target_lang=target_lang,
         glossary=glossary,
-        style_guide=style_guide
+        style_guide=style_guide,
+        key=key
     )
 
     # 에이전트 생성 (프롬프트 캐싱 포함)
@@ -79,6 +81,16 @@ async def translate(
         feedback=feedback,
         num_candidates=num_candidates
     )
+
+    if logger.isEnabledFor(logging.DEBUG):
+        key_label = f" ({key})" if key else ""
+        logger.debug(
+            f"\n{'='*60}\n"
+            f"[Translator]{key_label} USER PROMPT\n"
+            f"{'='*60}\n"
+            f"{user_message}\n"
+            f"{'='*60}"
+        )
 
     # 에이전트 비동기 실행
     try:
@@ -107,7 +119,8 @@ def _build_system_prompt(
     source_lang: str,
     target_lang: str,
     glossary: Optional[Dict[str, str]] = None,
-    style_guide: Optional[Dict[str, str]] = None
+    style_guide: Optional[Dict[str, str]] = None,
+    key: Optional[str] = None
 ) -> str:
     """시스템 프롬프트 구성"""
 
@@ -128,13 +141,25 @@ def _build_system_prompt(
         style_text = "(기본 스타일)"
 
     # 프롬프트 템플릿 로드 및 렌더링
-    return load_prompt(
+    prompt = load_prompt(
         "translator",
         source_lang=source_lang,
         target_lang=target_lang,
         glossary=glossary_text,
         style_guide=style_text
     )
+
+    if logger.isEnabledFor(logging.DEBUG):
+        key_label = f" ({key})" if key else ""
+        logger.debug(
+            f"\n{'='*60}\n"
+            f"[Translator]{key_label} SYSTEM PROMPT\n"
+            f"{'='*60}\n"
+            f"{prompt}\n"
+            f"{'='*60}"
+        )
+
+    return prompt
 
 
 def _build_user_message(

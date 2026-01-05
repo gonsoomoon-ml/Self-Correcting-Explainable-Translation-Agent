@@ -109,6 +109,9 @@ uv run python test_workflow.py --input examples/single/legal.json --max-regen 2
 # 배치 테스트
 uv run python test_workflow.py --batch --input examples/batch/mixed.json
 uv run python test_workflow.py --batch --input examples/batch/faq.json
+
+# 디버그 모드 (프롬프트 확인)
+uv run python test_workflow.py --input examples/single/faq.json --debug
 ```
 
 ### 실행 예시
@@ -277,7 +280,8 @@ Python 3.11+ · AWS Bedrock · Claude 4.5 Opus · Strands Agents · OpenTelemetr
 | 문서 | 설명 |
 |------|------|
 | [config/README.md](01_explainable_translate_agent/config/README.md) | YAML 설정 가이드 |
-| [data/glossaries/README.md](01_explainable_translate_agent/data/glossaries/README.md) | 제품/언어별 용어집 |
+| [data/glossaries/README.md](01_explainable_translate_agent/data/glossaries/README.md) | 제품/언어별 용어집 (자동 로드) |
+| [data/style_guides/](01_explainable_translate_agent/data/style_guides/) | 제품/언어별 스타일 가이드 (자동 로드) |
 | [data/risk_profiles/README.md](01_explainable_translate_agent/data/risk_profiles/README.md) | 국가별 규제 준수 규칙 |
 
 ### 운영

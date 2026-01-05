@@ -295,7 +295,14 @@ async def main():
     parser.add_argument("--batch", action="store_true", help="배치 테스트 실행")
     parser.add_argument("--max-regen", type=int, default=1, help="최대 재생성 횟수 (기본: 1)")
     parser.add_argument("--session-id", type=str, help="커스텀 세션 ID")
+    parser.add_argument("--debug", action="store_true", help="DEBUG 로그 레벨 활성화 (프롬프트 출력)")
     args = parser.parse_args()
+
+    # DEBUG 모드 설정
+    if args.debug:
+        logging.getLogger("src.tools").setLevel(logging.DEBUG)
+        # strands 내부 로그는 숨김
+        logging.getLogger("strands").setLevel(logging.WARNING)
 
     # 테스트 데이터 로드
     input_path = Path(args.input) if args.input else None

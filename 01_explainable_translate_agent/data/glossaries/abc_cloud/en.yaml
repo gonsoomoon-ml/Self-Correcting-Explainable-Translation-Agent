@@ -3,6 +3,7 @@
 
 # 제품명
 ABC 클라우드: ABC Cloud
+ABC 계정: ABC account
 
 # 핵심 기능
 동기화: sync
@@ -10,10 +11,13 @@ ABC 클라우드: ABC Cloud
 복원: restore
 자동 백업: automatic backup
 자동 재시도: automatic retry
+저장 공간: storage
 
 # UI 요소
 설정: Settings
+계정 및 백업: Accounts and backup
 앱: app
+요금제: plan
 
 # 인프라/기술 용어
 네트워크: network

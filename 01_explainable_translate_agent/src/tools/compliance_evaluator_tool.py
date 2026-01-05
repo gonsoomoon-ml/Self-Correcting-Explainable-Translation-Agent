@@ -65,8 +65,22 @@ async def evaluate_compliance(
     """
     start_time = time.time()
 
-    # 시스템 프롬프트 로드
-    system_prompt = _build_system_prompt(source_lang, target_lang)
+    # 시스템 프롬프트 로드 (risk_profile 포함 - 캐싱 최적화)
+    system_prompt = _build_system_prompt(
+        source_lang=source_lang,
+        target_lang=target_lang,
+        risk_profile=risk_profile,
+        content_context=content_context
+    )
+
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(
+            f"\n{'='*60}\n"
+            f"[Compliance] SYSTEM PROMPT (with risk_profile - cached)\n"
+            f"{'='*60}\n"
+            f"{system_prompt}\n"
+            f"{'='*60}"
+        )
 
     # 에이전트 생성
     agent = get_agent(
@@ -76,13 +90,20 @@ async def evaluate_compliance(
         prompt_cache=use_cache
     )
 
-    # 사용자 메시지 구성
+    # 사용자 메시지 구성 (source_text, translation만 - 매번 변경)
     user_message = _build_user_message(
         source_text=source_text,
-        translation=translation,
-        risk_profile=risk_profile,
-        content_context=content_context
+        translation=translation
     )
+
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(
+            f"\n{'='*60}\n"
+            f"[Compliance] USER PROMPT\n"
+            f"{'='*60}\n"
+            f"{user_message}\n"
+            f"{'='*60}"
+        )
 
     # 에이전트 비동기 실행
     try:
@@ -111,27 +132,56 @@ async def evaluate_compliance(
     )
 
 
-def _build_system_prompt(source_lang: str, target_lang: str) -> str:
-    """시스템 프롬프트 구성"""
-    return load_prompt(
+def _build_system_prompt(
+    source_lang: str,
+    target_lang: str,
+    risk_profile: Optional[Dict[str, Any]] = None,
+    content_context: str = "FAQ"
+) -> str:
+    """
+    시스템 프롬프트 구성 (risk_profile 포함).
+
+    risk_profile을 시스템 프롬프트에 포함하여 캐싱 최적화:
+    - 같은 국가의 번역을 여러 개 처리할 때 시스템 프롬프트가 캐시됨
+    - 금칙어/면책문구 목록이 매번 재전송되지 않음
+    """
+    base_prompt = load_prompt(
         "compliance_evaluator",
         source_lang=source_lang,
         target_lang=target_lang
     )
 
-
-def _build_user_message(
-    source_text: str,
-    translation: str,
-    risk_profile: Optional[Dict[str, Any]] = None,
-    content_context: str = "FAQ"
-) -> str:
-    """사용자 메시지 구성"""
+    # risk_profile을 시스템 프롬프트에 추가
     if risk_profile:
         risk_text = json.dumps(risk_profile, ensure_ascii=False, indent=2)
     else:
         risk_text = "(기본 리스크 프로파일 - 금칙어 없음)"
 
+    risk_section = dedent(f"""
+## Risk Profile
+<risk_profile>
+{risk_text}
+</risk_profile>
+
+## Content Context
+<content_context>
+{content_context}
+</content_context>
+""")
+
+    return base_prompt + "\n" + risk_section
+
+
+def _build_user_message(
+    source_text: str,
+    translation: str
+) -> str:
+    """
+    사용자 메시지 구성 (source_text, translation만).
+
+    risk_profile은 시스템 프롬프트로 이동하여 캐싱 최적화.
+    사용자 메시지는 매번 변경되는 번역 내용만 포함.
+    """
     return dedent(f"""\
         다음 번역을 규정 준수 관점에서 평가하세요.
 
@@ -142,14 +192,6 @@ def _build_user_message(
         <translation>
         {translation}
         </translation>
-
-        <content_context>
-        {content_context}
-        </content_context>
-
-        <risk_profile>
-        {risk_text}
-        </risk_profile>
 
         위 내용을 바탕으로 규정 준수를 평가하고 결과를 JSON 형식으로 반환하세요.\
     """)
