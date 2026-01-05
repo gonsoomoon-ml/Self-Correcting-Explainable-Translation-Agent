@@ -260,6 +260,7 @@ Python 3.11+ · AWS Bedrock · Claude 4.5 Opus · Strands Agents · OpenTelemetr
 | 문서 | 설명 |
 |------|------|
 | [src/graph/README.md](01_explainable_translate_agent/src/graph/README.md) | 워크플로우 State Machine |
+| [docs/state-walkthrough.md](01_explainable_translate_agent/docs/state-walkthrough.md) | State 객체 변화 상세 가이드 |
 | [src/models/README.md](01_explainable_translate_agent/src/models/README.md) | 데이터 모델 (Pydantic) |
 | [sops/README.md](01_explainable_translate_agent/sops/README.md) | 의사결정 절차 (Gate, Regeneration) |
 
