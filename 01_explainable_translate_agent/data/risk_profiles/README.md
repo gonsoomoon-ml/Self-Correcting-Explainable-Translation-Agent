@@ -54,7 +54,7 @@
 ## 파일 구조
 
 ```
-config/risk_profiles/
+data/risk_profiles/
 ├── README.md          # 이 문서
 ├── DEFAULT.yaml       # 기본 프로파일 (글로벌)
 └── US.yaml            # 미국 시장 프로파일

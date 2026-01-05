@@ -144,7 +144,7 @@ src/prompts/
 | 변수 | 출처 | 사용 에이전트 | 역할 |
 |------|------|--------------|------|
 | `{{ glossary }}` | `data/glossaries/` | Translator, Accuracy, Quality | 용어 일관성 강제 |
-| `{{ risk_profile }}` | `config/risk_profiles/` | Compliance | 국가별 규제 규칙 적용 |
+| `{{ risk_profile }}` | `data/risk_profiles/` | Compliance | 국가별 규제 규칙 적용 |
 | `{{ backtranslation }}` | Backtranslator 출력 | Accuracy | 의미 보존 검증 |
 | `{{ feedback }}` | RegenerationSOP 출력 | Translator (재생성 시) | 이전 평가 피드백 |
 

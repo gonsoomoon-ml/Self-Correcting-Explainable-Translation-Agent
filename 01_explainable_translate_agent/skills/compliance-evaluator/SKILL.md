@@ -346,9 +346,9 @@ Return evaluation results in the following JSON structure:
 ## References
 <references>
 Risk profiles are located in:
-- `config/risk_profiles/US.yaml`
-- `config/risk_profiles/EU.yaml`
-- `config/risk_profiles/CN.yaml`
+- `data/risk_profiles/US.yaml`
+- `data/risk_profiles/EU.yaml`
+- `data/risk_profiles/CN.yaml`
 - etc.
 
 For detailed compliance guidelines, see:

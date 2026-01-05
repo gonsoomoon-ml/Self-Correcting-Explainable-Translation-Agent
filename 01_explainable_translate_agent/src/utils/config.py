@@ -73,7 +73,9 @@ class ConfigLoader:
         Returns:
             Risk profile configuration
         """
-        profile_dir = self.config_dir / "risk_profiles"
+        # risk_profiles are in data/ (not config/) - they're knowledge, not settings
+        data_dir = self.config_dir.parent / "data"
+        profile_dir = data_dir / "risk_profiles"
         candidates = [
             profile_dir / f"{country_code}.yaml",
             profile_dir / f"{country_code}.yml",
@@ -97,7 +99,8 @@ class ConfigLoader:
 
     def list_risk_profiles(self) -> List[str]:
         """List available risk profile country codes"""
-        profile_dir = self.config_dir / "risk_profiles"
+        data_dir = self.config_dir.parent / "data"
+        profile_dir = data_dir / "risk_profiles"
         if not profile_dir.exists():
             return []
 
@@ -108,6 +111,72 @@ class ConfigLoader:
             profiles.append(path.stem)
 
         return sorted(set(profiles))
+
+    def load_glossary(
+        self,
+        product: str,
+        target_lang: str
+    ) -> Dict[str, str]:
+        """
+        Load a product-specific glossary for a target language.
+
+        Args:
+            product: Product identifier (e.g., "abc_cloud")
+            target_lang: Target language code (e.g., "en", "en-rUS", "ja")
+
+        Returns:
+            Glossary dict mapping source terms to target terms
+        """
+        data_dir = self.config_dir.parent / "data"
+        glossary_dir = data_dir / "glossaries" / product
+
+        # Normalize language code: "en-rUS" → "en"
+        base_lang = target_lang.split("-")[0]
+
+        candidates = [
+            glossary_dir / f"{target_lang}.yaml",  # exact match (en-rUS.yaml)
+            glossary_dir / f"{target_lang}.yml",
+            glossary_dir / f"{base_lang}.yaml",    # base language (en.yaml)
+            glossary_dir / f"{base_lang}.yml",
+        ]
+
+        for path in candidates:
+            if path.exists():
+                with open(path, "r", encoding="utf-8") as f:
+                    data = yaml.safe_load(f)
+                    # Filter out comments (keys starting with #)
+                    if data:
+                        return {k: v for k, v in data.items() if not k.startswith("#")}
+                    return {}
+
+        # Return empty glossary if not found
+        return {}
+
+    def list_glossaries(self) -> List[Dict[str, Any]]:
+        """List available glossaries with their products and languages"""
+        data_dir = self.config_dir.parent / "data"
+        glossary_base = data_dir / "glossaries"
+        if not glossary_base.exists():
+            return []
+
+        glossaries = []
+        for product_dir in glossary_base.iterdir():
+            if product_dir.is_dir():
+                product = product_dir.name
+                for path in product_dir.glob("*.yaml"):
+                    glossaries.append({
+                        "product": product,
+                        "language": path.stem,
+                        "path": str(path)
+                    })
+                for path in product_dir.glob("*.yml"):
+                    glossaries.append({
+                        "product": product,
+                        "language": path.stem,
+                        "path": str(path)
+                    })
+
+        return glossaries
 
     def get_languages(self) -> List[Dict[str, Any]]:
         """Get list of target languages"""
@@ -164,3 +233,22 @@ def get_risk_profile(country_code: str) -> Dict[str, Any]:
     """Convenience function to get a risk profile"""
     loader = get_config_loader()
     return loader.load_risk_profile(country_code)
+
+
+def get_glossary(product: str, target_lang: str) -> Dict[str, str]:
+    """
+    Convenience function to get a glossary.
+
+    Args:
+        product: Product identifier (e.g., "abc_cloud")
+        target_lang: Target language code (e.g., "en", "en-rUS", "ja")
+
+    Returns:
+        Glossary dict mapping source terms to target terms
+
+    Example:
+        glossary = get_glossary("abc_cloud", "en-rUS")
+        # Returns: {"ABC 클라우드": "ABC Cloud", "동기화": "sync", ...}
+    """
+    loader = get_config_loader()
+    return loader.load_glossary(product, target_lang)

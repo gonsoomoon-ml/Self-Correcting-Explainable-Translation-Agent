@@ -61,7 +61,7 @@ unit = TranslationUnit(
 #### 데이터 흐름
 
 ```
-data/source/ko_faq.json     data/glossaries/en.yaml     config/risk_profiles/US.yaml
+data/source/ko_faq.json     data/glossaries/en.yaml     data/risk_profiles/US.yaml
          │                           │                            │
          ▼                           ▼                            ▼
     source_text    +            glossary       +            risk_profile
@@ -97,8 +97,8 @@ glossary = {
 
 | 값 | 설명 | 파일 |
 |----|------|------|
-| `"US"` | 미국 규정 | `config/risk_profiles/US.yaml` |
-| `"DEFAULT"` | 기본 규정 | `config/risk_profiles/DEFAULT.yaml` |
+| `"US"` | 미국 규정 | `data/risk_profiles/US.yaml` |
+| `"DEFAULT"` | 기본 규정 | `data/risk_profiles/DEFAULT.yaml` |
 
 #### target_lang 타겟 언어
 

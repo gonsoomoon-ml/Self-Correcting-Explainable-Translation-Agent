@@ -1,0 +1,23 @@
+# ABC Cloud 용어집 (Korean → English)
+# 번역 시 일관성을 위한 필수 용어 매핑
+
+# 제품명
+ABC 클라우드: ABC Cloud
+
+# 핵심 기능
+동기화: sync
+백업: backup
+복원: restore
+자동 백업: automatic backup
+자동 재시도: automatic retry
+
+# UI 요소
+설정: Settings
+앱: app
+
+# 인프라/기술 용어
+네트워크: network
+데이터: data
+
+# 지원/서비스
+고객센터: Customer Support

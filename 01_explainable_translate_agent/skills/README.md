@@ -430,4 +430,4 @@ scoring = accuracy_skill.get_section("Scoring")
 ## 참고 자료
 
 - `src/prompts/README.md` - 프롬프트 템플릿 사용법
-- `config/risk_profiles/` - 국가별 리스크 프로파일
+- `data/risk_profiles/` - 국가별 리스크 프로파일

@@ -59,6 +59,7 @@ from .config import (
     get_config,
     get_thresholds,
     get_risk_profile,
+    get_glossary,
 )
 
 # Deprecated: raw boto3 client (use strands_utils instead)
@@ -111,6 +112,7 @@ __all__ = [
     "get_config",
     "get_thresholds",
     "get_risk_profile",
+    "get_glossary",
     # Deprecated
     "BedrockClient",
     "ModelConfig",

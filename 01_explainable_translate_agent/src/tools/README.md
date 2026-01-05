@@ -248,5 +248,5 @@ total_cost = input_cost + output_cost
 | `src/prompts/*.md` | 시스템 프롬프트 템플릿 |
 | `src/utils/strands_utils.py` | Strands Agent 유틸리티 |
 | `src/models/` | 데이터 모델 정의 |
-| `config/risk_profiles/` | 국가별 규제 프로파일 |
+| `data/risk_profiles/` | 국가별 규제 프로파일 |
 | `data/glossaries/` | 도메인별 용어집 |

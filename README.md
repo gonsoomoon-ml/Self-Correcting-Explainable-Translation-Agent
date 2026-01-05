@@ -215,7 +215,7 @@ Correction: "will occur" → "will be initiated" 제안
 |----------|------|------|
 | **Prompts** | `src/prompts/` | 에이전트별 시스템 프롬프트 템플릿 (Markdown) |
 | **Glossaries** | `data/glossaries/` | 도메인별 용어집 → 용어 일관성 강제 |
-| **Risk Profiles** | `config/risk_profiles/` | 국가별 규제 준수 규칙 (금칙어, 면책조항, 개인정보) |
+| **Risk Profiles** | `data/risk_profiles/` | 국가별 규제 준수 규칙 (금칙어, 면책조항, 개인정보) |
 | **Config** | `config/` | 임계값, 모델, 언어 설정 (YAML) |
 | **Utils** | `src/utils/` | Strands Agent 래퍼, OTEL 트레이싱 |
 
@@ -272,12 +272,13 @@ Python 3.11+ · AWS Bedrock · Claude 4.5 Opus · Strands Agents · OpenTelemetr
 | [src/prompts/README.md](01_explainable_translate_agent/src/prompts/README.md) | 프롬프트 설계 가이드 |
 | [skills/README.md](01_explainable_translate_agent/skills/README.md) | 재사용 가능 지식 패키지 (🔮 향후 기능) |
 
-### 설정
+### 설정 & 데이터
 
 | 문서 | 설명 |
 |------|------|
 | [config/README.md](01_explainable_translate_agent/config/README.md) | YAML 설정 가이드 |
-| [config/risk_profiles/README.md](01_explainable_translate_agent/config/risk_profiles/README.md) | 국가별 규제 준수 규칙 (금칙어, 면책조항, 개인정보) |
+| [data/glossaries/README.md](01_explainable_translate_agent/data/glossaries/README.md) | 제품/언어별 용어집 |
+| [data/risk_profiles/README.md](01_explainable_translate_agent/data/risk_profiles/README.md) | 국가별 규제 준수 규칙 |
 
 ### 운영
 
