@@ -42,25 +42,29 @@
 
 ## 어떻게 만드나 (How?)
 
-5단계 파이프라인으로 번역을 생성하고 검증합니다. 용어집(Glossary)이 전체 파이프라인에 용어 제약을 주입하고, SOP가 결정론적 정책을 적용합니다.
+5단계 파이프라인으로 번역을 생성하고 검증합니다.
+- **Glossary**: 번역·평가에 용어 제약 주입
+- **Risk Profile**: Compliance 에이전트에 국가별 규제 규칙 제공
+- **SOP**: 결정론적 정책으로 Pass/Regenerate/Block 판정
 
 | 단계 | 노드 | 역할 |
 |------|------|------|
 | [1] 번역 | TRANSLATE | 원문 → 대상 언어 번역 (용어집 적용) |
 | [2] 역번역 | BACKTRANSLATE | 번역 → 원본 언어로 재번역 (의미 보존 검증용) |
-| [3] 평가 | EVALUATE | 3개 에이전트가 병렬로 품질 평가 |
+| [3] 평가 | EVALUATE | 3개 에이전트가 병렬로 품질 평가 (Risk Profile 적용) |
 | [4] 판정 | DECIDE | SOP가 점수 기반으로 Pass/Regenerate/Block 결정 |
 | [5] 최종 | FINALIZE | 판정에 따라 발행/거부/검수대기 처리 |
 
 ```
-                              ┌──────────┐
-                              │ GLOSSARY │ (용어 제약)
-                              └────┬─────┘
-                                   │
-┌──────────────────────────────────┼──────────────────────────────────────────┐
-│                              번역 파이프라인                                  │
-└──────────────────────────────────┼──────────────────────────────────────────┘
-                                   ▼
+                    ┌──────────┐          ┌──────────────┐
+                    │ GLOSSARY │          │ RISK PROFILE │
+                    │(용어 제약)│          │ (규제 규칙)  │
+                    └────┬─────┘          └──────┬───────┘
+                         │                       │
+┌────────────────────────┼───────────────────────┼────────────────────────────┐
+│                        │      번역 파이프라인   │                            │
+└────────────────────────┼───────────────────────┼────────────────────────────┘
+                         ▼                       ▼
     [1] 번역        [2] 역번역       [3] 평가         [4] 판정        [5] 최종
    ┌────────┐     ┌────────┐     ┌────────┐     ┌────────┐     ┌────────┐
    │TRANSLATE────▶│  BACK  │────▶│EVALUATE│────▶│ DECIDE │────▶│FINALIZE│
@@ -211,6 +215,7 @@ Correction: "will occur" → "will be initiated" 제안
 |----------|------|------|
 | **Prompts** | `src/prompts/` | 에이전트별 시스템 프롬프트 템플릿 (Markdown) |
 | **Glossaries** | `data/glossaries/` | 도메인별 용어집 → 용어 일관성 강제 |
+| **Risk Profiles** | `config/risk_profiles/` | 국가별 규제 준수 규칙 (금칙어, 면책조항, 개인정보) |
 | **Config** | `config/` | 임계값, 모델, 언어 설정 (YAML) |
 | **Utils** | `src/utils/` | Strands Agent 래퍼, OTEL 트레이싱 |
 
@@ -250,12 +255,6 @@ Python 3.11+ · AWS Bedrock · Claude 4.5 Opus · Strands Agents · OpenTelemetr
 
 ## Documentation
 
-### 시작하기
-
-| 문서 | 설명 |
-|------|------|
-| [setup/](setup/) | 환경 설정 스크립트 |
-
 ### 아키텍처
 
 | 문서 | 설명 |
@@ -270,13 +269,14 @@ Python 3.11+ · AWS Bedrock · Claude 4.5 Opus · Strands Agents · OpenTelemetr
 |------|------|
 | [src/tools/README.md](01_explainable_translate_agent/src/tools/README.md) | Agent-as-Tool 래퍼 |
 | [src/prompts/README.md](01_explainable_translate_agent/src/prompts/README.md) | 프롬프트 설계 가이드 |
-| [skills/README.md](01_explainable_translate_agent/skills/README.md) | 재사용 가능 지식 패키지 |
+| [skills/README.md](01_explainable_translate_agent/skills/README.md) | 재사용 가능 지식 패키지 (🔮 향후 기능) |
 
 ### 설정
 
 | 문서 | 설명 |
 |------|------|
 | [config/README.md](01_explainable_translate_agent/config/README.md) | YAML 설정 가이드 |
+| [config/risk_profiles/README.md](01_explainable_translate_agent/config/risk_profiles/README.md) | 국가별 규제 준수 규칙 (금칙어, 면책조항, 개인정보) |
 
 ### 운영
 
