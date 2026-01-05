@@ -25,27 +25,39 @@
 ## 아키텍처에서의 위치
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              번역 파이프라인                                  │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                      │
-                    ┌─────────────────┼─────────────────┐
-                    ▼                 ▼                 ▼
-             ┌───────────┐     ┌───────────┐     ┌───────────┐
-             │ Accuracy  │     │Compliance │     │  Quality  │
-             │ Evaluator │     │ Evaluator │     │ Evaluator │
-             └───────────┘     └─────┬─────┘     └───────────┘
-                                     │
-                                     ▼
-                            ┌─────────────────┐
-                            │  RISK PROFILE   │
-                            │   (US.yaml)     │
-                            ├─────────────────┤
-                            │ • 금칙어        │
-                            │ • 면책조항      │
-                            │ • 개인정보 규칙 │
-                            │ • 톤/격식       │
-                            └─────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                              번역 파이프라인                                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌─────────────────┐                                                         │
+│  │  RISK PROFILE   │                                                         │
+│  │   (US.yaml)     │                                                         │
+│  ├─────────────────┤                                                         │
+│  │ • 금칙어        │                                                         │
+│  │ • 면책조항      │──────────────────────┐                                   │
+│  │ • 개인정보 규칙 │                      │                                   │
+│  │ • 톤/격식       │                      │                                   │
+│  └─────────────────┘                      ▼                                   │
+│                               ┌─────────────────────┐                        │
+│                    ┌──────────│  EVALUATE (3 병렬)  │──────────┐              │
+│                    │          └─────────────────────┘          │              │
+│                    ▼                    ▼                      ▼              │
+│             ┌───────────┐        ┌───────────┐          ┌───────────┐        │
+│             │ Accuracy  │        │Compliance │◀─────────│  Quality  │        │
+│             │ Evaluator │        │ Evaluator │ Risk     │ Evaluator │        │
+│             │           │        │           │ Profile  │           │        │
+│             └───────────┘        └───────────┘ 적용     └───────────┘        │
+│                                                                               │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+## 파일 구조
+
+```
+config/risk_profiles/
+├── README.md          # 이 문서
+├── DEFAULT.yaml       # 기본 프로파일 (글로벌)
+└── US.yaml            # 미국 시장 프로파일
 ```
 
 ---
@@ -153,6 +165,17 @@ tone:
 | `US.yaml` | 미국 | 북미 | High | FTC, FDA, CCPA, COPPA, ADA |
 | `DEFAULT.yaml` | (기본값) | 글로벌 | Medium | 기본 콘텐츠 안전 규칙 |
 
+### US.yaml 요약
+
+| 카테고리 | 규칙 수 | 주요 내용 |
+|----------|---------|-----------|
+| **prohibited_terms** | 9개 | guaranteed, 100% safe, cures, risk-free 등 |
+| **required_disclaimers** | 4개 | data_backup, cloud_storage, account_deletion, payment |
+| **privacy** | 3개 | personal_data, location_data, biometric_data |
+| **age_restrictions** | 1개 | COPPA (13세 미만) |
+| **accessibility** | 3개 | alt_text, screen_reader, color_contrast |
+| **tone** | medium | clear and direct, professional |
+
 ## 심각도 수준
 
 | 수준 | 점수 영향 | 조치 |
@@ -227,3 +250,14 @@ Risk Profile 위반 시 Compliance Agent가 반환하는 결과:
 | `CN.yaml` | 중국 | PIPL, CSL | 🔮 계획 |
 | `JP.yaml` | 일본 | APPI, JIS | 🔮 계획 |
 | `KR.yaml` | 한국 | PIPA, 정보통신망법 | 🔮 계획 |
+
+---
+
+## 관련 파일
+
+| 파일 | 역할 |
+|------|------|
+| `src/tools/compliance_evaluator_tool.py` | Risk Profile을 사용하는 Compliance 에이전트 |
+| `src/prompts/compliance_evaluator.md` | Compliance 에이전트 프롬프트 ({{ risk_profile }} 변수) |
+| `src/models/agent_result.py` | `risk_flags` 필드 정의 |
+| `config/settings.yaml` | 기본 Risk Profile 설정 |
