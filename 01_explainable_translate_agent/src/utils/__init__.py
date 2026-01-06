@@ -62,6 +62,28 @@ from .config import (
     get_glossary,
 )
 
+# Workflow State Management for GraphBuilder
+from .workflow_state import (
+    WorkflowConfig,
+    WorkflowStateManager,
+    get_state_manager,
+    get_workflow_state,
+    update_workflow_state,
+    workflow_context,
+    should_regenerate_from_state,
+    should_finalize_from_state,
+    is_workflow_failed,
+)
+
+# GraphBuilder components
+from .strands_utils import (
+    FunctionNode,
+    MultiAgentBase,
+    NodeResult,
+    MultiAgentResult,
+    Status,
+)
+
 # Deprecated: raw boto3 client (use strands_utils instead)
 from .bedrock_client import (
     BedrockClient,
@@ -113,6 +135,22 @@ __all__ = [
     "get_thresholds",
     "get_risk_profile",
     "get_glossary",
+    # Workflow State Management
+    "WorkflowConfig",
+    "WorkflowStateManager",
+    "get_state_manager",
+    "get_workflow_state",
+    "update_workflow_state",
+    "workflow_context",
+    "should_regenerate_from_state",
+    "should_finalize_from_state",
+    "is_workflow_failed",
+    # GraphBuilder components
+    "FunctionNode",
+    "MultiAgentBase",
+    "NodeResult",
+    "MultiAgentResult",
+    "Status",
     # Deprecated
     "BedrockClient",
     "ModelConfig",

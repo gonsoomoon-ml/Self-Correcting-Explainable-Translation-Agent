@@ -8,7 +8,6 @@ sample-deep-insight/self-hosted의 프로덕션 검증 패턴 기반.
 - 간편한 에이전트 생성
 - 프롬프트 캐싱 (캐시된 프롬프트 비용 90% 절감)
 - 스로틀링 감지를 통한 자동 재시도 및 오류 처리
-- 스트리밍 지원
 """
 
 import logging
@@ -1021,6 +1020,90 @@ class TokenTracker:
 
 
 # =============================================================================
+# GraphBuilder 컴포넌트 (Strands Multi-Agent 지원)
+# =============================================================================
+
+from strands.agent.agent_result import AgentResult
+from strands.types.content import ContentBlock, Message
+from strands.multiagent.base import MultiAgentBase, NodeResult, MultiAgentResult, Status
+
+
+class FunctionNode(MultiAgentBase):
+    """
+    비동기 Python 함수를 GraphBuilder 노드로 래핑.
+
+    기존 워크플로우 노드 함수(translate_node, evaluate_node 등)를
+    Strands GraphBuilder와 호환되도록 변환합니다.
+
+    sample-deep-insight/self-hosted의 프로덕션 패턴 기반.
+
+    Example:
+        from src.graph.nodes import translate_node
+
+        # 기존 함수를 GraphBuilder 노드로 변환
+        translate = FunctionNode(translate_node, "translate")
+        builder.add_node(translate, "translate")
+    """
+
+    def __init__(self, func, name: str = None):
+        """
+        FunctionNode 초기화.
+
+        Args:
+            func: 래핑할 async 또는 sync 함수
+            name: 노드 이름 (기본값: 함수 이름)
+        """
+        super().__init__()
+        self.func = func
+        self.name = name or func.__name__
+
+    def __call__(self, task=None, **kwargs):
+        """MultiAgentBase 호환을 위한 동기 실행"""
+        if asyncio.iscoroutinefunction(self.func):
+            return asyncio.run(self.func(task=task, **kwargs))
+        else:
+            return self.func(task=task, **kwargs)
+
+    async def invoke_async(self, task=None, invocation_state=None, **kwargs):
+        """
+        그래프에서 비동기 실행.
+
+        Args:
+            task: 그래프에서 전달된 태스크 (초기 입력 또는 이전 노드 결과)
+            invocation_state: 그래프 전역 상태 (invocation_state로 전달됨)
+            **kwargs: 추가 인자
+
+        Returns:
+            MultiAgentResult: 그래프 실행을 위한 표준 결과
+        """
+        # 함수 실행 (노드는 글로벌 상태를 통해 데이터 공유)
+        if asyncio.iscoroutinefunction(self.func):
+            response = await self.func(task=task, **kwargs)
+        else:
+            response = self.func(task=task, **kwargs)
+
+        # 응답 텍스트 추출
+        if isinstance(response, dict):
+            text = response.get("text", str(response))
+        else:
+            text = str(response) if response else ""
+
+        # AgentResult로 래핑
+        agent_result = AgentResult(
+            stop_reason="end_turn",
+            message=Message(role="assistant", content=[ContentBlock(text=text)]),
+            metrics={},
+            state={}
+        )
+
+        # MultiAgentResult로 반환
+        return MultiAgentResult(
+            status=Status.COMPLETED,
+            results={self.name: NodeResult(result=agent_result)}
+        )
+
+
+# =============================================================================
 # 내보내기
 # =============================================================================
 
@@ -1046,4 +1129,10 @@ __all__ = [
     "parse_response_text",
     # 토큰 추적
     "TokenTracker",
+    # GraphBuilder 컴포넌트
+    "FunctionNode",
+    "MultiAgentBase",
+    "NodeResult",
+    "MultiAgentResult",
+    "Status",
 ]

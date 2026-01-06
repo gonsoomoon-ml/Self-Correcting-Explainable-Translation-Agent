@@ -19,12 +19,12 @@ aws configure
 
 # 워크플로우 실행 (01_explainable_translate_agent/ 디렉토리에서)
 uv run --no-sync python test_workflow.py              # 단일 테스트
-uv run --no-sync python test_workflow.py --batch      # 배치 테스트
 uv run --no-sync python test_workflow.py --dry-run    # 구조 확인 (API 호출 없음)
+uv run --no-sync python test_workflow.py --debug      # 디버그 모드 (프롬프트 출력)
 
 # 옵션
+--input <file>          # 입력 JSON 파일
 --session-id <id>       # 커스텀 세션 ID
---concurrency <n>       # 배치 동시성 (기본: 2)
 --max-regen <n>         # 최대 재생성 횟수 (기본: 1)
 ```
 
@@ -47,7 +47,7 @@ INPUT → TRANSLATE → BACKTRANSLATE → EVALUATE (3 agents 병렬) → GATE
 | **Models** | `src/models/` | Pydantic 데이터 모델 (TranslationUnit, AgentResult, GateDecision) |
 | **Tools** | `src/tools/` | Agent-as-Tool 래퍼 - Bedrock 호출 |
 | **SOPs** | `sops/` | 의사결정 절차 (EvaluationGateSOP, RegenerationSOP) |
-| **Graph** | `src/graph/` | State Machine 워크플로우 오케스트레이션 |
+| **Graph** | `src/graph/` | Strands GraphBuilder 워크플로우 오케스트레이션 |
 | **Skills** | `skills/` | 재사용 가능한 지식/프롬프트 패키지 (SKILL.md + references/) |
 
 ### 3 Evaluation Agents
@@ -69,7 +69,7 @@ INPUT → TRANSLATE → BACKTRANSLATE → EVALUATE (3 agents 병렬) → GATE
 ## Key Files
 
 - `test_workflow.py` - 워크플로우 테스트 진입점
-- `src/graph/builder.py` - TranslationWorkflowGraph 클래스 (State Machine)
+- `src/graph/builder.py` - TranslationWorkflowGraphV2 클래스 (Strands GraphBuilder)
 - `src/graph/nodes.py` - 파이프라인 노드 (translate, backtranslate, evaluate, decide)
 - `sops/evaluation_gate.py` - EvaluationGateSOP (Pass/Block/Regenerate/Rejected 판정)
 - `src/utils/observability.py` - OTEL 트레이싱 유틸리티
@@ -93,5 +93,4 @@ with observability_session(session_id="user-123", workflow_name="translation"):
 ## Results
 
 결과는 `01_explainable_translate_agent/results/` 에 JSON으로 저장:
-- `results/single/<timestamp>/<key>.json` - 단일 테스트
-- `results/batch/<timestamp>/_summary.json` - 배치 요약
+- `results/single/<timestamp>/<key>.json` - 단일 테스트 결과

@@ -1,15 +1,34 @@
 """
-워크플로우 그래프 빌더 - 번역 파이프라인 오케스트레이션
+Strands GraphBuilder 기반 워크플로우 빌더
 
-State Machine 기반으로 조건부 라우팅을 구현합니다.
+기존 builder.py의 기능을 Strands GraphBuilder로 재구현합니다.
+
+주요 변경사항:
+- 선언적 그래프 정의 (add_node, add_edge)
+- 조건부 엣지 (condition 파라미터)
+- FunctionNode 래퍼 사용
 
 워크플로우 흐름:
-    INIT → TRANSLATE → BACKTRANSLATE → EVALUATE → DECIDE
-                                                     ↓
-                                    ┌────────────────┼────────────────┐
-                                    ↓                ↓                ↓
-                                 PUBLISHED      REGENERATE        REJECTED
-                                              (loop back)       /ESCALATE
+    TRANSLATE → BACKTRANSLATE → EVALUATE → DECIDE
+                                              ↓
+                              ┌───────────────┼───────────────┐
+                              ↓               ↓               ↓
+                          FINALIZE       REGENERATE      FINALIZE
+                         (PASS/BLOCK)   (loop back)    (ESCALATE)
+
+사용법:
+    from src.graph.builder import build_translation_graph, TranslationWorkflowConfig
+
+    # 그래프 빌드
+    config = TranslationWorkflowConfig(max_regenerations=2)
+    graph = build_translation_graph(config)
+
+    # 실행
+    from src.utils import workflow_context, get_workflow_state
+
+    with workflow_context(unit, config) as workflow_id:
+        result = await graph.invoke_async({"unit": unit})
+        final_state = get_workflow_state(workflow_id)
 """
 
 import logging
@@ -17,29 +36,40 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 from dataclasses import dataclass, field
 
+from strands.multiagent import GraphBuilder
+
 from src.models.translation_unit import TranslationUnit
-from src.models.translation_record import TranslationRecord
-from src.models.gate_decision import Verdict
-from src.models.workflow_state import WorkflowState, is_terminal_state
+from src.models.workflow_state import WorkflowState
+from src.utils.strands_utils import FunctionNode
+from src.utils.workflow_state import (
+    WorkflowConfig,
+    WorkflowStateManager,
+    get_state_manager,
+    get_workflow_state,
+    workflow_context,
+)
 from src.graph.nodes import (
     translate_node,
     backtranslate_node,
     evaluate_node,
     decide_node,
     regenerate_node,
-    finalize_node
+    finalize_node,
+    should_regenerate,
+    should_finalize,
 )
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
-class WorkflowConfig:
-    """워크플로우 설정"""
-    max_regenerations: int = 1          # 최대 재생성 횟수
-    num_candidates: int = 1             # 번역 후보 수
-    enable_backtranslation: bool = True # 역번역 활성화
-    timeout_seconds: int = 120          # 전체 타임아웃
+class TranslationWorkflowConfig:
+    """번역 워크플로우 설정"""
+    max_regenerations: int = 1
+    num_candidates: int = 1
+    enable_backtranslation: bool = True
+    timeout_seconds: int = 120
+    max_node_executions: int = 15  # 무한 루프 방지
 
 
 @dataclass
@@ -53,93 +83,139 @@ class WorkflowMetrics:
     token_usage: Dict[str, int] = field(default_factory=dict)
 
 
-def should_regenerate(state: Dict[str, Any]) -> bool:
-    """재생성 조건 확인"""
-    decision = state.get("gate_decision")
-    return decision and decision.verdict == Verdict.REGENERATE
-
-
-def should_finalize(state: Dict[str, Any]) -> bool:
-    """최종화 조건 확인 (PASS, BLOCK, ESCALATE)"""
-    decision = state.get("gate_decision")
-    if not decision:
-        return False
-    return decision.verdict in [Verdict.PASS, Verdict.BLOCK, Verdict.ESCALATE]
-
-
-def is_failed(state: Dict[str, Any]) -> bool:
-    """실패 상태 확인"""
-    return state.get("workflow_state") == WorkflowState.FAILED
-
-
-class TranslationWorkflowGraph:
+def build_translation_graph(
+    config: Optional[TranslationWorkflowConfig] = None
+):
     """
-    번역 워크플로우 그래프.
+    Strands GraphBuilder로 번역 워크플로우 그래프 빌드.
 
-    State Machine 패턴으로 번역 파이프라인을 오케스트레이션합니다.
+    Args:
+        config: 워크플로우 설정
 
-    흐름:
-    1. 번역 생성 (Translator)
-    2. 역번역 (Backtranslator)
-    3. 병렬 평가 (3 Evaluators)
-    4. 판정 (Release Guard)
-    5. 라우팅:
-       - PASS → 발행
-       - REGENERATE → 피드백 수집 후 1로 돌아감
-       - BLOCK/ESCALATE → 거부 또는 PM 검수
+    Returns:
+        Graph: Strands Graph 인스턴스
 
-    사용 예:
-        graph = TranslationWorkflowGraph()
-        result = await graph.run(translation_unit)
-        print(result["workflow_state"])  # PUBLISHED, REJECTED, etc.
+    Example:
+        graph = build_translation_graph(TranslationWorkflowConfig(max_regenerations=2))
+
+        with workflow_context(unit) as wf_id:
+            result = await graph.invoke_async({"key": unit.key})
+            state = get_workflow_state(wf_id)
+    """
+    config = config or TranslationWorkflowConfig()
+    builder = GraphBuilder()
+
+    # ==========================================================================
+    # 노드 등록
+    # ==========================================================================
+    # 기존 노드 함수를 FunctionNode로 래핑
+    builder.add_node(FunctionNode(translate_node, "translate"), "translate")
+    builder.add_node(FunctionNode(backtranslate_node, "backtranslate"), "backtranslate")
+    builder.add_node(FunctionNode(evaluate_node, "evaluate"), "evaluate")
+    builder.add_node(FunctionNode(decide_node, "decide"), "decide")
+    builder.add_node(FunctionNode(regenerate_node, "regenerate"), "regenerate")
+    builder.add_node(FunctionNode(finalize_node, "finalize"), "finalize")
+
+    # ==========================================================================
+    # 엣지 정의 (워크플로우 흐름)
+    # ==========================================================================
+    builder.set_entry_point("translate")
+
+    # 메인 파이프라인: translate → backtranslate → evaluate → decide
+    if config.enable_backtranslation:
+        builder.add_edge("translate", "backtranslate")
+        builder.add_edge("backtranslate", "evaluate")
+    else:
+        builder.add_edge("translate", "evaluate")
+
+    builder.add_edge("evaluate", "decide")
+
+    # 조건부 분기: decide → finalize 또는 regenerate
+    builder.add_edge("decide", "finalize", condition=should_finalize)
+    builder.add_edge("decide", "regenerate", condition=should_regenerate)
+
+    # 재생성 루프: regenerate → translate
+    builder.add_edge("regenerate", "translate")
+
+    # ==========================================================================
+    # 실행 제한
+    # ==========================================================================
+    # 무한 루프 방지: max_regenerations + 기본 실행 횟수
+    max_executions = config.max_node_executions
+    builder.set_max_node_executions(max_executions)
+
+    if config.timeout_seconds > 0:
+        builder.set_execution_timeout(config.timeout_seconds)
+
+    logger.info(
+        f"번역 그래프 빌드 완료 - "
+        f"max_regenerations: {config.max_regenerations}, "
+        f"max_node_executions: {max_executions}"
+    )
+
+    return builder.build()
+
+
+class TranslationWorkflowGraphV2:
+    """
+    Strands GraphBuilder 기반 번역 워크플로우 그래프.
+
+    기존 TranslationWorkflowGraph와 호환되는 인터페이스를 제공하면서
+    내부적으로는 Strands GraphBuilder를 사용합니다.
+
+    Example:
+        graph = TranslationWorkflowGraphV2(config)
+        result = await graph.run(unit)
+        print(result["workflow_state"])
     """
 
-    def __init__(self, config: Optional[WorkflowConfig] = None):
+    def __init__(self, config: Optional[TranslationWorkflowConfig] = None):
         """
         워크플로우 그래프 초기화.
 
         Args:
-            config: 워크플로우 설정. 미제공시 기본값 사용.
+            config: 워크플로우 설정
         """
-        self.config = config or WorkflowConfig()
+        self.config = config or TranslationWorkflowConfig()
+        self.graph = build_translation_graph(self.config)
+        self.state_manager = get_state_manager()
 
     async def run(self, unit: TranslationUnit) -> Dict[str, Any]:
         """
         워크플로우 실행.
 
+        기존 TranslationWorkflowGraph.run()과 동일한 인터페이스.
+
         Args:
             unit: 번역할 TranslationUnit
 
         Returns:
-            최종 워크플로우 상태 딕셔너리:
-                - unit: 입력 TranslationUnit
-                - translation_result: 번역 결과
-                - backtranslation_result: 역번역 결과
-                - agent_results: 평가 결과 리스트
-                - gate_decision: 최종 판정
-                - workflow_state: 최종 상태
-                - final_translation: 최종 번역 (PASS인 경우)
-                - attempt_count: 총 시도 횟수
-                - metrics: WorkflowMetrics
+            최종 워크플로우 상태 딕셔너리
         """
         start_time = datetime.now()
 
-        # 초기 상태 설정
-        state = {
-            "unit": unit,
-            "attempt_count": 1,
-            "num_candidates": self.config.num_candidates,
-            "max_regenerations": self.config.max_regenerations,
-            "workflow_state": WorkflowState.INITIALIZED,
-            "created_at": start_time
-        }
+        # 워크플로우 상태 생성
+        workflow_config = WorkflowConfig(
+            max_regenerations=self.config.max_regenerations,
+            num_candidates=self.config.num_candidates,
+            enable_backtranslation=self.config.enable_backtranslation,
+            timeout_seconds=self.config.timeout_seconds
+        )
+        workflow_id = self.state_manager.create_workflow(unit, workflow_config)
 
-        logger.info(f"워크플로우 시작: {unit.key}")
+        logger.info(f"워크플로우 시작: {unit.key} (workflow_id: {workflow_id})")
 
         try:
-            state = await self._run_pipeline(state)
+            # GraphBuilder 실행
+            task = {"key": unit.key}
+            await self.graph.invoke_async(task)
+
+            # 최종 상태 가져오기
+            state = self.state_manager.get_state(workflow_id)
+
         except Exception as e:
             logger.error(f"워크플로우 실패: {e}")
+            state = self.state_manager.get_state(workflow_id)
             state["workflow_state"] = WorkflowState.FAILED
             state["error"] = str(e)
 
@@ -147,64 +223,16 @@ class TranslationWorkflowGraph:
         end_time = datetime.now()
         state["metrics"] = self._calculate_metrics(state, start_time, end_time)
 
+        # 정리
+        final_state = self.state_manager.cleanup(workflow_id)
+
         logger.info(
-            f"워크플로우 완료: {state['workflow_state'].value} "
-            f"(시도 {state.get('attempt_count', 1)}회, "
-            f"{state['metrics'].total_latency_ms}ms)"
+            f"워크플로우 완료: {final_state.get('workflow_state', WorkflowState.FAILED).value} "
+            f"(시도 {final_state.get('attempt_count', 1)}회, "
+            f"{final_state.get('metrics', {}).total_latency_ms if hasattr(final_state.get('metrics', {}), 'total_latency_ms') else 0}ms)"
         )
 
-        return state
-
-    async def _run_pipeline(self, state: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        메인 파이프라인 루프.
-
-        Maker-Checker 패턴으로 필요시 재생성합니다.
-        """
-        while True:
-            # Step 1: 번역
-            state = await translate_node(state)
-            if is_failed(state):
-                break
-
-            # Step 2: 역번역
-            if self.config.enable_backtranslation:
-                state = await backtranslate_node(state)
-                if is_failed(state):
-                    break
-
-            # Step 3: 평가
-            state = await evaluate_node(state)
-            if is_failed(state):
-                break
-
-            # Step 4: 판정
-            state = await decide_node(state)
-            if is_failed(state):
-                break
-
-            # Step 5: 라우팅
-            if should_finalize(state):
-                state = await finalize_node(state)
-                break
-
-            if should_regenerate(state):
-                # 최대 재생성 횟수 확인
-                if state.get("attempt_count", 1) > self.config.max_regenerations:
-                    logger.warning("최대 재생성 횟수 초과")
-                    state = await finalize_node(state)
-                    break
-
-                # 재생성 준비 후 루프 계속
-                state = await regenerate_node(state)
-                continue
-
-            # 예상치 못한 상태
-            logger.error(f"예상치 못한 판정: {state.get('gate_decision')}")
-            state["workflow_state"] = WorkflowState.FAILED
-            break
-
-        return state
+        return final_state
 
     def _calculate_metrics(
         self,
@@ -212,10 +240,9 @@ class TranslationWorkflowGraph:
         start_time: datetime,
         end_time: datetime
     ) -> WorkflowMetrics:
-        """워크플로우 메트릭 계산"""
+        """워크플로우 메트릭 계산 (기존 로직 유지)"""
         total_latency = int((end_time - start_time).total_seconds() * 1000)
 
-        # 개별 단계 지연시간
         translation_latency = 0
         backtranslation_latency = 0
         evaluation_latency = 0
@@ -257,59 +284,10 @@ class TranslationWorkflowGraph:
             token_usage=token_usage
         )
 
-    async def run_batch(
-        self,
-        units: list[TranslationUnit],
-        concurrency: int = 5
-    ) -> list[Dict[str, Any]]:
-        """
-        배치 워크플로우 실행.
 
-        여러 TranslationUnit을 동시에 처리합니다.
-
-        Args:
-            units: 번역할 TranslationUnit 리스트
-            concurrency: 동시 처리 수
-
-        Returns:
-            각 unit의 워크플로우 결과 리스트
-        """
-        import asyncio
-        from asyncio import Semaphore
-
-        semaphore = Semaphore(concurrency)
-
-        async def run_with_semaphore(unit: TranslationUnit) -> Dict[str, Any]:
-            async with semaphore:
-                return await self.run(unit)
-
-        logger.info(f"배치 처리 시작: {len(units)}개 항목, 동시성 {concurrency}")
-
-        results = await asyncio.gather(
-            *[run_with_semaphore(unit) for unit in units],
-            return_exceptions=True
-        )
-
-        # 예외를 실패 결과로 변환
-        processed_results = []
-        for i, result in enumerate(results):
-            if isinstance(result, Exception):
-                processed_results.append({
-                    "unit": units[i],
-                    "workflow_state": WorkflowState.FAILED,
-                    "error": str(result)
-                })
-            else:
-                processed_results.append(result)
-
-        # 통계 로깅
-        states = [r.get("workflow_state", WorkflowState.FAILED) for r in processed_results]
-        published = sum(1 for s in states if s == WorkflowState.PUBLISHED)
-        rejected = sum(1 for s in states if s == WorkflowState.REJECTED)
-        failed = sum(1 for s in states if s == WorkflowState.FAILED)
-
-        logger.info(
-            f"배치 처리 완료: 발행 {published}, 거부 {rejected}, 실패 {failed}"
-        )
-
-        return processed_results
+__all__ = [
+    "TranslationWorkflowConfig",
+    "WorkflowMetrics",
+    "build_translation_graph",
+    "TranslationWorkflowGraphV2",
+]

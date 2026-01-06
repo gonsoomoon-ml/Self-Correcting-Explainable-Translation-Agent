@@ -20,6 +20,10 @@ from src.prompts.template import load_prompt
 
 logger = logging.getLogger(__name__)
 
+# ANSI 색상 코드
+CYAN = '\033[96m'
+RESET = '\033[0m'
+
 
 async def evaluate_accuracy(
     source_text: str,
@@ -28,7 +32,8 @@ async def evaluate_accuracy(
     source_lang: str = "ko",
     target_lang: str = "en-rUS",
     glossary: Optional[Dict[str, str]] = None,
-    use_cache: bool = True
+    use_cache: bool = True,
+    key: Optional[str] = None
 ) -> AgentResult:
     """
     번역의 정확성 평가.
@@ -67,6 +72,16 @@ async def evaluate_accuracy(
     # 시스템 프롬프트 로드
     system_prompt = _build_system_prompt(source_lang, target_lang)
 
+    if logger.isEnabledFor(logging.DEBUG):
+        key_label = f" ({key})" if key else ""
+        logger.debug(
+            f"\n{CYAN}{'='*60}\n"
+            f"[Accuracy]{key_label} SYSTEM PROMPT\n"
+            f"{'='*60}{RESET}\n"
+            f"{system_prompt}\n"
+            f"{CYAN}{'='*60}{RESET}"
+        )
+
     # 에이전트 생성
     agent = get_agent(
         role="accuracy_evaluator",
@@ -82,6 +97,16 @@ async def evaluate_accuracy(
         backtranslation=backtranslation,
         glossary=glossary
     )
+
+    if logger.isEnabledFor(logging.DEBUG):
+        key_label = f" ({key})" if key else ""
+        logger.debug(
+            f"\n{CYAN}{'='*60}\n"
+            f"[Accuracy]{key_label} USER PROMPT\n"
+            f"{'='*60}{RESET}\n"
+            f"{user_message}\n"
+            f"{CYAN}{'='*60}{RESET}"
+        )
 
     # 에이전트 비동기 실행
     try:

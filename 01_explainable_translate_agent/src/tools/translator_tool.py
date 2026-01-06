@@ -17,6 +17,10 @@ from src.prompts.template import load_prompt
 
 logger = logging.getLogger(__name__)
 
+# ANSI 색상 코드
+BLUE = '\033[94m'
+RESET = '\033[0m'
+
 
 async def translate(
     source_text: str,
@@ -85,11 +89,11 @@ async def translate(
     if logger.isEnabledFor(logging.DEBUG):
         key_label = f" ({key})" if key else ""
         logger.debug(
-            f"\n{'='*60}\n"
+            f"\n{BLUE}{'='*60}\n"
             f"[Translator]{key_label} USER PROMPT\n"
-            f"{'='*60}\n"
+            f"{'='*60}{RESET}\n"
             f"{user_message}\n"
-            f"{'='*60}"
+            f"{BLUE}{'='*60}{RESET}"
         )
 
     # 에이전트 비동기 실행
@@ -152,11 +156,11 @@ def _build_system_prompt(
     if logger.isEnabledFor(logging.DEBUG):
         key_label = f" ({key})" if key else ""
         logger.debug(
-            f"\n{'='*60}\n"
+            f"\n{BLUE}{'='*60}\n"
             f"[Translator]{key_label} SYSTEM PROMPT\n"
-            f"{'='*60}\n"
+            f"{'='*60}{RESET}\n"
             f"{prompt}\n"
-            f"{'='*60}"
+            f"{BLUE}{'='*60}{RESET}"
         )
 
     return prompt

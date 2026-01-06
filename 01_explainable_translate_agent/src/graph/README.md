@@ -1,6 +1,6 @@
 # Graph - 워크플로우 오케스트레이션
 
-번역 파이프라인을 State Machine 패턴으로 오케스트레이션하는 모듈입니다.
+번역 파이프라인을 **Strands GraphBuilder**로 오케스트레이션하는 모듈입니다.
 
 ## 개요
 
@@ -223,15 +223,40 @@ state = await finalize_node(state)
 
 ## 그래프 빌더 상세 (builder.py)
 
-`TranslationWorkflowGraph`는 노드들을 오케스트레이션하는 **메인 컨트롤러**입니다.
+`TranslationWorkflowGraphV2`는 **Strands GraphBuilder**를 사용하여 노드들을 오케스트레이션하는 메인 컨트롤러입니다.
 
 ### 클래스 구조
 
 ```python
-class TranslationWorkflowGraph:
-    def __init__(self, config: WorkflowConfig = None)
+class TranslationWorkflowGraphV2:
+    def __init__(self, config: TranslationWorkflowConfig = None)
     async def run(self, unit: TranslationUnit) -> Dict[str, Any]
-    async def run_batch(self, units: list, concurrency: int = 5) -> list
+```
+
+### GraphBuilder 그래프 빌드
+
+```python
+def build_translation_graph(config: TranslationWorkflowConfig = None):
+    builder = GraphBuilder()
+
+    # 노드 등록 (FunctionNode로 래핑)
+    builder.add_node(FunctionNode(translate_node, "translate"), "translate")
+    builder.add_node(FunctionNode(backtranslate_node, "backtranslate"), "backtranslate")
+    builder.add_node(FunctionNode(evaluate_node, "evaluate"), "evaluate")
+    builder.add_node(FunctionNode(decide_node, "decide"), "decide")
+    builder.add_node(FunctionNode(regenerate_node, "regenerate"), "regenerate")
+    builder.add_node(FunctionNode(finalize_node, "finalize"), "finalize")
+
+    # 엣지 정의
+    builder.set_entry_point("translate")
+    builder.add_edge("translate", "backtranslate")
+    builder.add_edge("backtranslate", "evaluate")
+    builder.add_edge("evaluate", "decide")
+    builder.add_edge("decide", "finalize", condition=should_finalize)
+    builder.add_edge("decide", "regenerate", condition=should_regenerate)
+    builder.add_edge("regenerate", "translate")
+
+    return builder.build()
 ```
 
 ### `run()` 메서드 실행 흐름
@@ -240,34 +265,22 @@ class TranslationWorkflowGraph:
 ┌─────────────────────────────────────────────────────────────────┐
 │                        run(unit)                                 │
 ├─────────────────────────────────────────────────────────────────┤
-│  1. 초기 상태 생성                                               │
-│     state = {unit, attempt_count=1, workflow_state=INITIALIZED} │
+│  1. WorkflowStateManager로 상태 생성                             │
+│     workflow_id = state_manager.create_workflow(unit, config)   │
 │                                                                  │
-│  2. _run_pipeline(state) 호출                                    │
+│  2. GraphBuilder.invoke_async() 호출                             │
 │                          ↓                                       │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │                  while True 루프                         │    │
-│  │  ┌──────────────┐                                       │    │
-│  │  │ translate    │ → state["translation_result"]         │    │
-│  │  └──────────────┘                                       │    │
-│  │          ↓                                              │    │
-│  │  ┌──────────────┐                                       │    │
-│  │  │ backtranslate│ → state["backtranslation_result"]     │    │
-│  │  └──────────────┘                                       │    │
-│  │          ↓                                              │    │
-│  │  ┌──────────────┐                                       │    │
-│  │  │ evaluate     │ → state["agent_results"] (3개 병렬)    │    │
-│  │  └──────────────┘                                       │    │
-│  │          ↓                                              │    │
-│  │  ┌──────────────┐                                       │    │
-│  │  │ decide       │ → state["gate_decision"]              │    │
-│  │  └──────────────┘                                       │    │
-│  │          ↓                                              │    │
-│  │  ┌──────────────────────────────────────────────────┐   │    │
-│  │  │              라우팅 로직                          │   │    │
-│  │  │  if should_finalize():  → finalize → break       │   │    │
-│  │  │  if should_regenerate(): → regenerate → continue │   │    │
-│  │  └──────────────────────────────────────────────────┘   │    │
+│  │            GraphBuilder 자동 실행 (선언적 그래프)         │    │
+│  │                                                          │    │
+│  │  translate → backtranslate → evaluate → decide           │    │
+│  │                                           ↓              │    │
+│  │                          ┌────────────────┼──────────┐   │    │
+│  │                          ↓                ↓          │   │    │
+│  │                      finalize        regenerate      │   │    │
+│  │                   (PASS/BLOCK)       (loop back)     │   │    │
+│  │                                           ↓          │   │    │
+│  │                                       translate      │   │    │
 │  └─────────────────────────────────────────────────────────┘    │
 │                                                                  │
 │  3. 메트릭 계산 → state["metrics"]                               │
@@ -276,45 +289,29 @@ class TranslationWorkflowGraph:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 라우팅 헬퍼 함수
+### 조건 함수 (GraphBuilder 조건부 엣지용)
 
 ```python
-def should_regenerate(state) -> bool:
-    """verdict가 REGENERATE인지 확인"""
-    return state["gate_decision"].verdict == Verdict.REGENERATE
+def should_regenerate(_) -> bool:
+    """재생성 조건: verdict == REGENERATE && attempt <= max_regen"""
+    state = get_workflow_state()
+    decision = state.get("gate_decision")
+    max_regen = state.get("max_regenerations", 1)
+    attempt = state.get("attempt_count", 1)
 
-def should_finalize(state) -> bool:
-    """verdict가 PASS, BLOCK, ESCALATE 중 하나인지 확인"""
-    return verdict in [Verdict.PASS, Verdict.BLOCK, Verdict.ESCALATE]
+    if decision and decision.verdict == Verdict.REGENERATE:
+        return attempt <= max_regen
+    return False
 
-def is_failed(state) -> bool:
-    """워크플로우가 실패 상태인지 확인"""
-    return state["workflow_state"] == WorkflowState.FAILED
+def should_finalize(_) -> bool:
+    """최종화 조건: not should_regenerate"""
+    return not should_regenerate(_)
 ```
 
-### `_run_pipeline()` 핵심 로직
-
+**참고:** GraphBuilder에서는 `condition` 파라미터로 조건부 분기를 선언적으로 정의합니다:
 ```python
-async def _run_pipeline(self, state):
-    while True:
-        # Step 1-4: 순차 실행
-        state = await translate_node(state)
-        state = await backtranslate_node(state)
-        state = await evaluate_node(state)
-        state = await decide_node(state)
-
-        # Step 5: 라우팅
-        if should_finalize(state):
-            state = await finalize_node(state)
-            break  # 루프 종료
-
-        if should_regenerate(state):
-            if attempt_count > max_regenerations:
-                break  # 최대 재시도 초과
-            state = await regenerate_node(state)
-            continue  # 루프 반복 (translate부터 다시)
-
-    return state
+builder.add_edge("decide", "finalize", condition=should_finalize)
+builder.add_edge("decide", "regenerate", condition=should_regenerate)
 ```
 
 ### Maker-Checker 루프 예시
@@ -340,29 +337,6 @@ async def _run_pipeline(self, state):
                                                         ↓
                                                       break
 ```
-
-### 배치 처리 (`run_batch`)
-
-```python
-async def run_batch(self, units: list, concurrency: int = 5):
-    semaphore = Semaphore(concurrency)  # 동시 실행 제한
-
-    async def run_with_semaphore(unit):
-        async with semaphore:
-            return await self.run(unit)
-
-    results = await asyncio.gather(
-        *[run_with_semaphore(unit) for unit in units]
-    )
-    return results
-```
-
-**동시성 제어:**
-| 설정 | 동작 |
-|------|------|
-| `concurrency=5` | 최대 5개 번역이 동시 실행 |
-| 각 번역 내 | 3개 평가 에이전트 병렬 실행 |
-| 최대 호출 | 15개 에이전트 동시 호출 가능 |
 
 ### 메트릭 수집 (`WorkflowMetrics`)
 
@@ -393,10 +367,9 @@ print(f"토큰: {metrics.token_usage}")
 
 | 구성요소 | 역할 |
 |---------|------|
-| `WorkflowConfig` | 설정 (재시도 횟수, 후보 수, 타임아웃) |
+| `TranslationWorkflowConfig` | 설정 (재시도 횟수, 후보 수, 타임아웃) |
+| `build_translation_graph()` | Strands GraphBuilder로 그래프 빌드 |
 | `run()` | 단일 번역 실행 + 메트릭 수집 |
-| `_run_pipeline()` | while 루프로 노드 실행 + 라우팅 |
-| `run_batch()` | Semaphore로 동시성 제어 배치 처리 |
 | `_calculate_metrics()` | 지연시간/토큰 집계 |
 
 ---
@@ -407,7 +380,7 @@ print(f"토큰: {metrics.token_usage}")
 
 ```python
 import asyncio
-from src.graph import TranslationWorkflowGraph
+from src.graph.builder import TranslationWorkflowGraphV2, TranslationWorkflowConfig
 from src.models import TranslationUnit
 
 async def main():
@@ -418,7 +391,8 @@ async def main():
         glossary={"ABC 클라우드": "ABC Cloud"}
     )
 
-    graph = TranslationWorkflowGraph()
+    config = TranslationWorkflowConfig(max_regenerations=2)
+    graph = TranslationWorkflowGraphV2(config)
     result = await graph.run(unit)
 
     print(f"상태: {result['workflow_state'].value}")
@@ -428,28 +402,22 @@ async def main():
 asyncio.run(main())
 ```
 
-### 배치 처리
-
-```python
-units = [unit1, unit2, unit3, ...]
-results = await graph.run_batch(units, concurrency=10)
-```
-
 ---
 
 ## 설정 옵션
 
 ```python
-from src.graph import WorkflowConfig
+from src.graph.builder import TranslationWorkflowConfig
 
-config = WorkflowConfig(
+config = TranslationWorkflowConfig(
     max_regenerations=1,          # 최대 재생성 횟수 (기본: 1)
     num_candidates=1,             # 번역 후보 수 (기본: 1)
     enable_backtranslation=True,  # 역번역 활성화 (기본: True)
-    timeout_seconds=120           # 타임아웃 (기본: 120초)
+    timeout_seconds=120,          # 타임아웃 (기본: 120초)
+    max_node_executions=15        # 무한 루프 방지 (기본: 15)
 )
 
-graph = TranslationWorkflowGraph(config)
+graph = TranslationWorkflowGraphV2(config)
 ```
 
 ---
@@ -470,11 +438,40 @@ result['metrics']             # WorkflowMetrics (지연시간, 토큰 사용량)
 
 ---
 
+## 상태 관리 (WorkflowStateManager)
+
+GraphBuilder 노드 간 데이터 공유를 위해 글로벌 상태 관리자를 사용합니다:
+
+```python
+from src.utils.workflow_state import (
+    WorkflowStateManager,
+    get_workflow_state,
+    update_workflow_state,
+    workflow_context
+)
+
+# 컨텍스트 매니저 사용 (권장)
+with workflow_context(unit, config) as workflow_id:
+    result = await graph.invoke_async(task)
+    state = get_workflow_state(workflow_id)
+
+# 노드 내에서 상태 접근
+def translate_node(task=None, **kwargs):
+    state = get_workflow_state()
+    unit = state["unit"]
+    # ... 처리 ...
+    state["translation_result"] = result
+```
+
+---
+
 ## 관련 모듈
 
 | 모듈 | 역할 |
 |------|------|
 | `src/tools/` | 번역 및 평가 도구 |
 | `src/models/` | 데이터 모델 |
+| `src/utils/strands_utils.py` | FunctionNode, Agent 유틸리티 |
+| `src/utils/workflow_state.py` | 글로벌 상태 관리 |
 | `sops/` | 의사결정 로직 (EvaluationGateSOP, RegenerationSOP) |
 | `src/prompts/` | 시스템 프롬프트 |

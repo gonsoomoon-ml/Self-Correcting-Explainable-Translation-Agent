@@ -20,12 +20,17 @@ from src.prompts.template import load_prompt
 
 logger = logging.getLogger(__name__)
 
+# ANSI 색상 코드
+MAGENTA = '\033[95m'
+RESET = '\033[0m'
+
 
 async def backtranslate(
     text: str,
     source_lang: str,
     target_lang: str,
-    use_cache: bool = True
+    use_cache: bool = True,
+    key: Optional[str] = None
 ) -> BacktranslationResult:
     """
     텍스트를 역번역.
@@ -60,6 +65,16 @@ async def backtranslate(
     # 시스템 프롬프트 로드
     system_prompt = _build_system_prompt(source_lang, target_lang)
 
+    if logger.isEnabledFor(logging.DEBUG):
+        key_label = f" ({key})" if key else ""
+        logger.debug(
+            f"\n{MAGENTA}{'='*60}\n"
+            f"[Backtranslator]{key_label} SYSTEM PROMPT\n"
+            f"{'='*60}{RESET}\n"
+            f"{system_prompt}\n"
+            f"{MAGENTA}{'='*60}{RESET}"
+        )
+
     # 에이전트 생성 (프롬프트 캐싱 포함)
     agent = get_agent(
         role="backtranslator",
@@ -76,6 +91,16 @@ async def backtranslate(
 
         위 텍스트를 {target_lang}로 역번역하세요. 가능한 한 직역하여 원래 의미를 드러내세요.\
     """)
+
+    if logger.isEnabledFor(logging.DEBUG):
+        key_label = f" ({key})" if key else ""
+        logger.debug(
+            f"\n{MAGENTA}{'='*60}\n"
+            f"[Backtranslator]{key_label} USER PROMPT\n"
+            f"{'='*60}{RESET}\n"
+            f"{user_message}\n"
+            f"{MAGENTA}{'='*60}{RESET}"
+        )
 
     # 에이전트 비동기 실행
     try:

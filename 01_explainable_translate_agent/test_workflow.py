@@ -1,22 +1,20 @@
 #!/usr/bin/env python3
 """
-워크플로우 테스트 스크립트
+Strands GraphBuilder 기반 워크플로우 테스트
 
-번역 파이프라인의 전체 흐름을 테스트합니다.
-
-사전 준비:
-    ./setup/create_env.sh  # 필수 (최초 1회)
+기존 test_workflow.py와 동일한 인터페이스로 새로운 GraphBuilder 버전을 테스트합니다.
 
 사용법:
-    uv run python test_workflow.py                              # 단일 테스트
-    uv run python test_workflow.py --input examples/single/ui.json
-    uv run python test_workflow.py --batch --input examples/batch/mixed.json
+    uv run python test_workflow.py                                    # 단일 테스트
+    uv run python test_workflow.py --input examples/single/faq.json   # 특정 입력 파일
+    uv run python test_workflow.py --max-regen 2 --debug              # 재생성 + 디버그
 
 옵션:
     --input FILE        입력 JSON 파일 (기본: examples/single/default.json)
-    --batch             배치 모드 (모든 테스트 항목 실행)
     --max-regen N       최대 재생성 횟수 (기본: 1)
     --session-id ID     OTEL 세션 ID 지정
+    --debug             DEBUG 로그 레벨 활성화 (프롬프트 출력)
+    --dry-run           구조 확인만 (API 호출 없음)
 """
 
 # =============================================================================
@@ -34,18 +32,12 @@ from typing import List
 sys.path.insert(0, str(Path(__file__).parent))
 
 from src.models import TranslationUnit
-from src.graph import TranslationWorkflowGraph, WorkflowConfig
+from src.graph.builder import TranslationWorkflowGraphV2, TranslationWorkflowConfig
 from src.utils.pricing import calculate_workflow_cost
-from src.utils.result_formatter import (
-    format_workflow_result,
-    calculate_batch_stats,
-    save_batch_summary,
-)
+from src.utils.result_formatter import format_workflow_result
 
 # =============================================================================
 # OTEL 설정 (선택적)
-# - 설치됨: CloudWatch로 트레이스 전송
-# - 미설치: 더미 세션으로 대체 (기능 정상 작동)
 # =============================================================================
 try:
     from src.utils.strands_utils import observability_session
@@ -72,8 +64,8 @@ logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("src.utils.strands_utils").setLevel(logging.WARNING)
 logging.getLogger("strands.telemetry.metrics").setLevel(logging.WARNING)
 
-RESULTS_DIR = Path(__file__).parent / "results"    # 결과 저장 위치
-EXAMPLES_DIR = Path(__file__).parent / "examples"  # 예제 입력 파일
+RESULTS_DIR = Path(__file__).parent / "results"
+EXAMPLES_DIR = Path(__file__).parent / "examples"
 
 
 # =============================================================================
@@ -115,16 +107,8 @@ def load_test_units(json_path: Path = None) -> List[TranslationUnit]:
     return [TranslationUnit(**item) for item in data]
 
 
-# =============================================================================
-# 테스트 데이터
-# - config/test_data.yaml 에서 로드 (기본값)
-# - --input 옵션으로 다른 파일 지정 가능
-# - 각 항목: key, source_text, source_lang, target_lang, glossary 등
-# =============================================================================
-
-
 def get_timestamp() -> str:
-    """타임스탬프 생성 (yyyy-mm-dd-hh-mm-ss-mms)"""
+    """타임스탬프 생성"""
     now = datetime.now()
     return now.strftime("%Y-%m-%d-%H-%M-%S") + f"-{now.microsecond // 1000:03d}"
 
@@ -142,15 +126,6 @@ def save_result(result: dict, run_dir: Path) -> Path:
     return file_path
 
 
-def log_batch_stats(stats: dict) -> None:
-    """배치 통계를 로그로 출력"""
-    log_section("배치 결과")
-    logger.info(f"  발행: {stats['published']}/{stats['total']}")
-    logger.info(f"  거부: {stats['rejected']}/{stats['total']}")
-    logger.info(f"  검수대기: {stats['pending']}/{stats['total']}")
-    logger.info(f"  실패: {stats['failed']}/{stats['total']}")
-
-
 def log_single_result(result: dict) -> None:
     """단일 번역 결과를 트리 형태로 출력"""
     m = result.get('metrics')
@@ -162,7 +137,7 @@ def log_single_result(result: dict) -> None:
     icon = {"published": "✅", "pending_review": "⚠️", "rejected": "❌", "failed": "💥"}.get(state, "🔄")
 
     # 헤더
-    print(f"\n{icon} 워크플로우 완료 ({total_ms/1000:.1f}s)")
+    print(f"\n{icon} 워크플로우 완료 ({total_ms/1000:.1f}s) [GraphBuilder V2]")
 
     # 번역
     if 'translation_result' in result:
@@ -186,12 +161,11 @@ def log_single_result(result: dict) -> None:
             prefix = "│   └─" if is_last else "│   ├─"
             score_icon = "✓" if ar.score >= 4 else ("△" if ar.score == 3 else "✗")
             print(f"{prefix} {ar.agent_name}: {ar.score} {score_icon}")
-            # 이슈가 있으면 표시
             if ar.issues and ar.score < 4:
                 issue_prefix = "│       └─" if is_last else "│   │   └─"
                 print(f"{issue_prefix} {ar.issues[0][:50]}...")
 
-    # 판정 (시도 히스토리 포함)
+    # 판정
     if 'attempt_history' in result and len(result['attempt_history']) > 1:
         print(f"└─ 판정 ({attempt}회 시도)")
         history = result['attempt_history']
@@ -221,15 +195,15 @@ def log_single_result(result: dict) -> None:
 # =============================================================================
 # 테스트 함수
 # =============================================================================
-async def test_single_translation(unit: TranslationUnit, config: WorkflowConfig) -> dict:
-    """단일 번역 테스트"""
+async def test_single_translation(unit: TranslationUnit, config: TranslationWorkflowConfig) -> dict:
+    """단일 번역 테스트 (GraphBuilder V2)"""
     log_header(
-        f"테스트: {unit.key}",
+        f"[GraphBuilder V2] 테스트: {unit.key}",
         f"원문: {unit.source_text[:50]}...",
         f"대상 언어: {unit.target_lang}"
     )
 
-    graph = TranslationWorkflowGraph(config)
+    graph = TranslationWorkflowGraphV2(config)
     result = await graph.run(unit)
 
     log_single_result(result)
@@ -249,40 +223,44 @@ async def test_single_translation(unit: TranslationUnit, config: WorkflowConfig)
     return result
 
 
-async def test_batch_translation(units: list, config: WorkflowConfig, concurrency: int = 2) -> list:
-    """배치 번역 테스트"""
-    log_header(f"배치 테스트: {len(units)}개 항목, 동시성 {concurrency}")
+def test_dry_run(config: TranslationWorkflowConfig):
+    """Dry run - 그래프 구조 확인 (API 호출 없음)"""
+    log_header("[GraphBuilder V2] Dry Run: 그래프 구조 확인")
 
-    graph = TranslationWorkflowGraph(config)
-    results = await graph.run_batch(units, concurrency=concurrency)
+    print(f"\n📋 설정:")
+    print(f"  - max_regenerations: {config.max_regenerations}")
+    print(f"  - num_candidates: {config.num_candidates}")
+    print(f"  - enable_backtranslation: {config.enable_backtranslation}")
+    print(f"  - timeout_seconds: {config.timeout_seconds}")
+    print(f"  - max_node_executions: {config.max_node_executions}")
 
-    # 통계
-    stats = calculate_batch_stats(results)
-    log_batch_stats(stats)
+    print("\n📊 워크플로우 흐름:")
+    print("  TRANSLATE → BACKTRANSLATE → EVALUATE → DECIDE")
+    print("                                           ↓")
+    print("               ┌──────────────────────────┼──────────────────────────┐")
+    print("               ↓                          ↓                          ↓")
+    print("           FINALIZE                  REGENERATE                  FINALIZE")
+    print("          (PASS/BLOCK)              (loop back)                 (ESCALATE)")
 
-    # 결과 저장
-    timestamp = get_timestamp()
-    run_dir = RESULTS_DIR / "batch" / timestamp
-    run_dir.mkdir(parents=True, exist_ok=True)
+    print("\n📦 노드 목록:")
+    nodes = ["translate", "backtranslate", "evaluate", "decide", "regenerate", "finalize"]
+    for node in nodes:
+        print(f"  - {node}")
 
-    for result in results:
-        save_result(result, run_dir)
+    print("\n🔗 엣지 목록:")
+    edges = [
+        ("translate", "backtranslate", None),
+        ("backtranslate", "evaluate", None),
+        ("evaluate", "decide", None),
+        ("decide", "finalize", "should_finalize"),
+        ("decide", "regenerate", "should_regenerate"),
+        ("regenerate", "translate", None),
+    ]
+    for src, dst, cond in edges:
+        cond_str = f" (condition: {cond})" if cond else ""
+        print(f"  - {src} → {dst}{cond_str}")
 
-    summary_path = save_batch_summary(results, run_dir)
-    logger.info(f"\n📁 결과 저장: {run_dir}")
-    logger.info(f"📊 요약: {summary_path}")
-
-    # 각 결과 JSON 출력 (요약만)
-    for result in results:
-        output_dict = format_workflow_result(result)
-        print_json_block(f"📄 Result JSON ({result['unit'].key}):", output_dict, summary_only=True)
-
-    # 요약 JSON 출력
-    with open(summary_path, "r", encoding="utf-8") as f:
-        summary = json.load(f)
-    print_json_block("📊 Summary JSON:", summary)
-
-    return results
+    print("\n✅ Dry run 완료")
 
 
 # =============================================================================
@@ -290,48 +268,49 @@ async def test_batch_translation(units: list, config: WorkflowConfig, concurrenc
 # =============================================================================
 async def main():
     """명령줄 인자를 파싱하고 적절한 테스트 모드 실행"""
-    parser = argparse.ArgumentParser(description="번역 워크플로우 테스트")
-    parser.add_argument("--input", type=str, help="입력 YAML 파일 경로")
-    parser.add_argument("--batch", action="store_true", help="배치 테스트 실행")
+    parser = argparse.ArgumentParser(description="[GraphBuilder V2] 번역 워크플로우 테스트")
+    parser.add_argument("--input", type=str, help="입력 JSON 파일 경로")
     parser.add_argument("--max-regen", type=int, default=1, help="최대 재생성 횟수 (기본: 1)")
     parser.add_argument("--session-id", type=str, help="커스텀 세션 ID")
     parser.add_argument("--debug", action="store_true", help="DEBUG 로그 레벨 활성화 (프롬프트 출력)")
+    parser.add_argument("--dry-run", action="store_true", help="구조 확인만 (API 호출 없음)")
     args = parser.parse_args()
 
     # DEBUG 모드 설정
     if args.debug:
         logging.getLogger("src.tools").setLevel(logging.DEBUG)
+        logging.getLogger("src.graph").setLevel(logging.DEBUG)
         # strands 내부 로그는 숨김
         logging.getLogger("strands").setLevel(logging.WARNING)
 
-    # 테스트 데이터 로드
-    input_path = Path(args.input) if args.input else None
-    test_units = load_test_units(input_path)
-
-    logger.info(f"OTEL: {'ENABLED' if OTEL_AVAILABLE else 'DISABLED'}")
-
     # 워크플로우 설정
-    config = WorkflowConfig(
+    config = TranslationWorkflowConfig(
         max_regenerations=args.max_regen,
         num_candidates=1,
         enable_backtranslation=True,
         timeout_seconds=120
     )
 
-    # Observability 세션으로 실행
-    workflow_name = "batch" if args.batch else "single"
+    # Dry run
+    if args.dry_run:
+        test_dry_run(config)
+        return
 
+    # 테스트 데이터 로드
+    input_path = Path(args.input) if args.input else None
+    test_units = load_test_units(input_path)
+
+    logger.info(f"OTEL: {'ENABLED' if OTEL_AVAILABLE else 'DISABLED'}")
+    logger.info(f"Implementation: Strands GraphBuilder V2")
+
+    # Observability 세션으로 실행
     with observability_session(
         session_id=args.session_id,
-        workflow_name=f"translation-{workflow_name}",
-        metadata={"test_mode": workflow_name}
+        workflow_name="translation-v2-single",
+        metadata={"test_mode": "single", "version": "v2"}
     ) as session:
         logger.info(f"Session ID: {session['session_id']}")
-
-        if args.batch:
-            await test_batch_translation(test_units, config)
-        else:
-            await test_single_translation(test_units[0], config)
+        await test_single_translation(test_units[0], config)
 
     if OTEL_AVAILABLE:
         logger.info("View traces: https://console.aws.amazon.com/cloudwatch/home#gen-ai-observability")

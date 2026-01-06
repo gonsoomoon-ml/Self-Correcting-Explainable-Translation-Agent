@@ -106,12 +106,11 @@ uv run python test_workflow.py --input examples/single/faq.json --max-regen 2
 uv run python test_workflow.py --input examples/single/ui.json --max-regen 2
 uv run python test_workflow.py --input examples/single/legal.json --max-regen 2
 
-# 배치 테스트
-uv run python test_workflow.py --batch --input examples/batch/mixed.json
-uv run python test_workflow.py --batch --input examples/batch/faq.json
-
 # 디버그 모드 (프롬프트 확인)
 uv run python test_workflow.py --input examples/single/faq.json --debug
+
+# 구조 확인 (API 호출 없음)
+uv run python test_workflow.py --dry-run
 ```
 
 ### 실행 예시
@@ -201,13 +200,13 @@ Correction: "will occur" → "will be initiated" 제안
 
 ## Implementation Approach
 
-본 시스템은 **관심사 분리 아키텍처**를 채택합니다.
+본 시스템은 **관심사 분리 아키텍처**와 **Strands GraphBuilder**를 채택합니다.
 
 ### Core Architecture (4 Layers)
 
 | 레이어 | 위치 | 역할 | 핵심 파일 |
 |--------|------|------|-----------|
-| **Graph** | `src/graph/` | 워크플로우 오케스트레이션 (State Machine) | `builder.py`, `nodes.py` |
+| **Graph** | `src/graph/` | Strands GraphBuilder 워크플로우 오케스트레이션 | `builder.py`, `nodes.py` |
 | **Tools** | `src/tools/` | Agent-as-Tool 패턴으로 LLM 호출 캡슐화 | `translator`, `*_evaluator` (3개) |
 | **SOPs** | `sops/` | 결정론적 정책 로직 (LLM 호출 없음) | `evaluation_gate`, `regeneration` |
 | **Models** | `src/models/` | Pydantic 기반 타입 안전 데이터 구조 | `TranslationUnit`, `GateDecision` |
@@ -220,12 +219,13 @@ Correction: "will occur" → "will be initiated" 제안
 | **Glossaries** | `data/glossaries/` | 도메인별 용어집 → 용어 일관성 강제 |
 | **Risk Profiles** | `data/risk_profiles/` | 국가별 규제 준수 규칙 (금칙어, 면책조항, 개인정보) |
 | **Config** | `config/` | 임계값, 모델, 언어 설정 (YAML) |
-| **Utils** | `src/utils/` | Strands Agent 래퍼, OTEL 트레이싱 |
+| **Utils** | `src/utils/` | Strands Agent 래퍼, FunctionNode, 상태 관리, OTEL 트레이싱 |
 
 ### 핵심 설계 결정
 
 | 결정 | 이유 | 효과 |
 |------|------|------|
+| **Strands GraphBuilder** | 선언적 그래프 정의 + 조건부 엣지 | 명확한 워크플로우 흐름, 유지보수 용이 |
 | **SOP로 정책 분리** | 판정 로직을 Python 코드로 명확히 정의 | LLM 비의존적, 결정론적, 감사 가능 |
 | **병렬 평가** | 3개 에이전트가 `asyncio.gather`로 동시 실행 | 지연시간 최소화 |
 | **프롬프트/로직 분리** | Prompts(지식)는 Markdown, SOPs(판정)는 Python | 각각 독립 수정 가능 |
@@ -240,11 +240,16 @@ explainable-translate-agent/
 │   └── create_env.sh
 ├── 01_explainable_translate_agent/
 │   ├── src/
-│   │   ├── graph/             # 워크플로우 State Machine
+│   │   ├── graph/             # Strands GraphBuilder 워크플로우
 │   │   ├── models/            # Pydantic 데이터 모델
 │   │   ├── tools/             # Agent-as-Tool 래퍼
+│   │   ├── utils/             # Strands 유틸리티, 상태 관리
 │   │   └── prompts/           # 프롬프트 템플릿
 │   ├── sops/                  # 의사결정 로직 (Gate, Regeneration)
+│   ├── data/
+│   │   ├── glossaries/        # 도메인별 용어집
+│   │   ├── style_guides/      # 스타일 가이드
+│   │   └── risk_profiles/     # 국가별 규제 준수 규칙
 │   ├── config/                # 설정 파일
 │   ├── examples/              # 테스트 입력 예제
 │   └── results/               # 실행 결과 (JSON)
@@ -262,7 +267,7 @@ Python 3.11+ · AWS Bedrock · Claude 4.5 Opus · Strands Agents · OpenTelemetr
 
 | 문서 | 설명 |
 |------|------|
-| [src/graph/README.md](01_explainable_translate_agent/src/graph/README.md) | 워크플로우 State Machine |
+| [src/graph/README.md](01_explainable_translate_agent/src/graph/README.md) | Strands GraphBuilder 워크플로우 |
 | [docs/state-walkthrough.md](01_explainable_translate_agent/docs/state-walkthrough.md) | State 객체 변화 상세 가이드 |
 | [src/models/README.md](01_explainable_translate_agent/src/models/README.md) | 데이터 모델 (Pydantic) |
 | [sops/README.md](01_explainable_translate_agent/sops/README.md) | 의사결정 절차 (Gate, Regeneration) |

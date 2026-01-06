@@ -21,6 +21,10 @@ from src.prompts.template import load_prompt
 
 logger = logging.getLogger(__name__)
 
+# ANSI 색상 코드
+GREEN = '\033[92m'
+RESET = '\033[0m'
+
 
 async def evaluate_quality(
     source_text: str,
@@ -31,7 +35,8 @@ async def evaluate_quality(
     content_type: str = "FAQ",
     glossary: Optional[Dict[str, str]] = None,
     locale_guidelines: Optional[str] = None,
-    use_cache: bool = True
+    use_cache: bool = True,
+    key: Optional[str] = None
 ) -> AgentResult:
     """
     번역의 품질 평가.
@@ -85,6 +90,16 @@ async def evaluate_quality(
         locale_guidelines=locale_guidelines
     )
 
+    if logger.isEnabledFor(logging.DEBUG):
+        key_label = f" ({key})" if key else ""
+        logger.debug(
+            f"\n{GREEN}{'='*60}\n"
+            f"[Quality]{key_label} SYSTEM PROMPT\n"
+            f"{'='*60}{RESET}\n"
+            f"{system_prompt}\n"
+            f"{GREEN}{'='*60}{RESET}"
+        )
+
     # 에이전트 생성
     agent = get_agent(
         role="quality_evaluator",
@@ -101,6 +116,16 @@ async def evaluate_quality(
         content_type=content_type,
         glossary=glossary
     )
+
+    if logger.isEnabledFor(logging.DEBUG):
+        key_label = f" ({key})" if key else ""
+        logger.debug(
+            f"\n{GREEN}{'='*60}\n"
+            f"[Quality]{key_label} USER PROMPT\n"
+            f"{'='*60}{RESET}\n"
+            f"{user_message}\n"
+            f"{GREEN}{'='*60}{RESET}"
+        )
 
     # 에이전트 비동기 실행
     try:

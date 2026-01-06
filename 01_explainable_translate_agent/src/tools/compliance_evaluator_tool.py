@@ -20,6 +20,10 @@ from src.prompts.template import load_prompt
 
 logger = logging.getLogger(__name__)
 
+# ANSI 색상 코드
+YELLOW = '\033[93m'
+RESET = '\033[0m'
+
 
 async def evaluate_compliance(
     source_text: str,
@@ -28,7 +32,8 @@ async def evaluate_compliance(
     target_lang: str = "en-rUS",
     risk_profile: Optional[Dict[str, Any]] = None,
     content_context: str = "FAQ",
-    use_cache: bool = True
+    use_cache: bool = True,
+    key: Optional[str] = None
 ) -> AgentResult:
     """
     번역의 규정 준수 평가.
@@ -74,12 +79,13 @@ async def evaluate_compliance(
     )
 
     if logger.isEnabledFor(logging.DEBUG):
+        key_label = f" ({key})" if key else ""
         logger.debug(
-            f"\n{'='*60}\n"
-            f"[Compliance] SYSTEM PROMPT (with risk_profile - cached)\n"
-            f"{'='*60}\n"
+            f"\n{YELLOW}{'='*60}\n"
+            f"[Compliance]{key_label} SYSTEM PROMPT (with risk_profile - cached)\n"
+            f"{'='*60}{RESET}\n"
             f"{system_prompt}\n"
-            f"{'='*60}"
+            f"{YELLOW}{'='*60}{RESET}"
         )
 
     # 에이전트 생성
@@ -97,12 +103,13 @@ async def evaluate_compliance(
     )
 
     if logger.isEnabledFor(logging.DEBUG):
+        key_label = f" ({key})" if key else ""
         logger.debug(
-            f"\n{'='*60}\n"
-            f"[Compliance] USER PROMPT\n"
-            f"{'='*60}\n"
+            f"\n{YELLOW}{'='*60}\n"
+            f"[Compliance]{key_label} USER PROMPT\n"
+            f"{'='*60}{RESET}\n"
             f"{user_message}\n"
-            f"{'='*60}"
+            f"{YELLOW}{'='*60}{RESET}"
         )
 
     # 에이전트 비동기 실행
