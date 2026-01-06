@@ -172,12 +172,127 @@ state = {
 
 ---
 
+## 상태 관리 동작 원리 (WorkflowStateManager)
+
+### 왜 글로벌 상태인가?
+
+Strands GraphBuilder에서 노드는 `task` 파라미터만 받습니다. 노드 간 데이터 공유를 위해 **글로벌 상태 저장소** 패턴을 사용합니다.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    글로벌 상태 저장소                         │
+│  _workflow_states = {                                       │
+│      "uuid-1": { unit, translation_result, ... },          │
+│      "uuid-2": { unit, translation_result, ... },          │
+│  }                                                          │
+└─────────────────────────────────────────────────────────────┘
+        ▲               ▲               ▲
+        │               │               │
+   translate_node  backtranslate   evaluate_node
+        │               │               │
+        └───────────────┴───────────────┘
+              get_workflow_state()로 접근
+```
+
+### 글로벌 변수
+
+```python
+_workflow_states: Dict[str, Dict[str, Any]] = {}  # 워크플로우ID → 상태
+_states_lock = threading.Lock()                    # 스레드 안전 보장
+_current_workflow_id: Optional[str] = None         # 현재 활성 워크플로우
+```
+
+### 실행 흐름
+
+```
+1. 워크플로우 시작
+   ┌──────────────────────────────────────────────────────────┐
+   │ with workflow_context(unit, config) as workflow_id:      │
+   │                          │                               │
+   │                          ▼                               │
+   │           WorkflowStateManager.create_workflow()         │
+   │                          │                               │
+   │                          ▼                               │
+   │           _workflow_states["uuid-xxx"] = {               │
+   │               "unit": unit,                              │
+   │               "attempt_count": 1,                        │
+   │               "workflow_state": INITIALIZED,             │
+   │               "token_usage": {...}                       │
+   │           }                                              │
+   │           _current_workflow_id = "uuid-xxx"              │
+   └──────────────────────────────────────────────────────────┘
+
+2. 노드 실행 (translate_node)
+   ┌──────────────────────────────────────────────────────────┐
+   │ async def translate_node(task=None, **kwargs):           │
+   │     state = get_workflow_state()  # 글로벌 상태 가져오기   │
+   │                   │                                      │
+   │                   ▼                                      │
+   │     _workflow_states[_current_workflow_id] 반환          │
+   │                   │                                      │
+   │     unit = state["unit"]                                 │
+   │     result = await translate(...)                        │
+   │     state["translation_result"] = result  # 직접 수정     │
+   └──────────────────────────────────────────────────────────┘
+
+3. 다음 노드 (backtranslate_node)
+   ┌──────────────────────────────────────────────────────────┐
+   │ async def backtranslate_node(task=None, **kwargs):       │
+   │     state = get_workflow_state()                         │
+   │     translation = state["translation_result"]  # 이전 결과│
+   │     ...                                                  │
+   └──────────────────────────────────────────────────────────┘
+
+4. 워크플로우 종료
+   ┌──────────────────────────────────────────────────────────┐
+   │ # with 블록 종료 시 자동 실행                              │
+   │ WorkflowStateManager.cleanup(workflow_id)                │
+   │                   │                                      │
+   │                   ▼                                      │
+   │ final_state = _workflow_states.pop("uuid-xxx")          │
+   │ _current_workflow_id = None                              │
+   │ return final_state                                       │
+   └──────────────────────────────────────────────────────────┘
+```
+
+### 주요 함수
+
+| 함수 | 설명 |
+|------|------|
+| `workflow_context(unit, config)` | 컨텍스트 매니저 (생성→정리 자동) |
+| `get_workflow_state(workflow_id?)` | 현재 상태 가져오기 (직접 수정 가능) |
+| `update_workflow_state(updates)` | 상태 업데이트 |
+| `should_regenerate_from_state()` | 재생성 조건 확인 (GraphBuilder 조건 함수용) |
+| `should_finalize_from_state()` | 최종화 조건 확인 (GraphBuilder 조건 함수용) |
+
+### 사용 예시
+
+```python
+from src.utils.workflow_state import workflow_context, get_workflow_state
+
+# 컨텍스트 매니저 사용 (권장)
+with workflow_context(unit, config) as workflow_id:
+    result = await graph.invoke_async(task)
+    final_state = get_workflow_state(workflow_id)
+# with 블록 종료 시 자동 cleanup
+
+# 노드 내에서 상태 접근
+async def translate_node(task=None, **kwargs):
+    state = get_workflow_state()
+    unit = state["unit"]
+    # ... 처리 ...
+    state["translation_result"] = result
+    return {"status": "completed"}
+```
+
+---
+
 ## 관련 파일
 
 | 파일 | 역할 |
 |------|------|
 | `src/graph/builder.py` | GraphBuilder 워크플로우 정의, 메트릭 계산 |
 | `src/graph/nodes.py` | 각 노드에서 State 업데이트 |
-| `src/utils/workflow_state.py` | WorkflowStateManager, 상태 관리 |
+| `src/utils/workflow_state.py` | WorkflowStateManager, 글로벌 상태 관리 |
 | `sops/evaluation_gate.py` | GateDecision 생성 |
 | `sops/regeneration.py` | feedback 생성 |
