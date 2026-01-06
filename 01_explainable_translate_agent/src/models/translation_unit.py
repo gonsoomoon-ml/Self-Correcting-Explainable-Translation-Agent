@@ -37,16 +37,9 @@ class TranslationUnit(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "key": "IDS_FAQ_SC_ABOUT",
-                "source_text": "ABC 클라우드는 사용자의 ABC 계정과 연동된 정보에 대한 동기화와 백업/복원을 지원하는 서비스입니다.",
-                "source_lang": "ko",
+                "key": "IDS_FAQ_001",
+                "source_text": "ABC 클라우드에서 동기화가 되지 않습니다.",
                 "target_lang": "en-rUS",
-                "glossary": {
-                    "ABC 클라우드": "ABC Cloud",
-                    "ABC 계정": "ABC account",
-                    "동기화": "sync"
-                },
-                "risk_profile": "US",
                 "product": "abc_cloud"
             }
         }

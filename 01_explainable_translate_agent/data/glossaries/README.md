@@ -27,10 +27,10 @@
 data/glossaries/
 ├── README.md              # 이 문서
 └── abc_cloud/             # 제품별 디렉토리
-    ├── en.yaml            # 영어 용어집
-    ├── ja.yaml            # 일본어 용어집 (예시)
-    └── zh-CN.yaml         # 중국어 용어집 (예시)
+    └── en.yaml            # 영어 용어집
 ```
+
+> 새 언어 추가 시: `{product}/{lang}.yaml` 형식으로 생성
 
 ---
 
@@ -42,15 +42,18 @@ data/glossaries/
 
 # 제품명
 ABC 클라우드: ABC Cloud
+ABC 계정: ABC account
 
 # 핵심 기능
 동기화: sync
 백업: backup
 복원: restore
+자동 백업: automatic backup
 
 # UI 요소
 설정: Settings
 앱: app
+요금제: plan
 
 # 지원/서비스
 고객센터: Customer Support
@@ -120,9 +123,11 @@ touch data/glossaries/new_product/en.yaml
 ### 2. 새 언어 용어집
 
 ```bash
-# 기존 영어 용어집 복사 후 번역
+# 기존 용어집 복사 후 타겟 언어로 번역
 cp data/glossaries/abc_cloud/en.yaml data/glossaries/abc_cloud/ja.yaml
-# ja.yaml 내용을 일본어로 수정
+# ja.yaml 내용을 일본어로 수정:
+# ABC 클라우드: ABCクラウド
+# 동기화: 同期
 ```
 
 ---

@@ -22,12 +22,10 @@ src/models/
 from src.models import TranslationUnit
 
 unit = TranslationUnit(
-    key="IDS_FAQ_SC_ABOUT",
-    source_text="ABC 클라우드는 사용자의 ABC 계정과 연동된 서비스입니다.",
-    target_lang="en",
-    glossary={"ABC 클라우드": "ABC Cloud", "ABC 계정": "ABC account"},
-    risk_profile="US",
-    product="abc_cloud"
+    key="IDS_FAQ_001",
+    source_text="ABC 클라우드에서 동기화가 되지 않습니다.",
+    target_lang="en-rUS",
+    product="abc_cloud"  # glossary는 product로 자동 로드
 )
 ```
 

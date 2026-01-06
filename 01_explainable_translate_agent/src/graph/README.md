@@ -385,10 +385,10 @@ from src.models import TranslationUnit
 
 async def main():
     unit = TranslationUnit(
-        key="IDS_FAQ_SC_ABOUT",
-        source_text="ABC 클라우드는 데이터를 동기화합니다.",
+        key="IDS_FAQ_001",
+        source_text="ABC 클라우드에서 동기화가 되지 않습니다.",
         target_lang="en-rUS",
-        glossary={"ABC 클라우드": "ABC Cloud"}
+        product="abc_cloud"
     )
 
     config = TranslationWorkflowConfig(max_regenerations=2)

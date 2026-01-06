@@ -40,12 +40,9 @@ evaluate_node                decide_node
 ```python
 state = {
     "unit": TranslationUnit(
-        key="faq_001",
-        source_text="ABC 클라우드에서 데이터를 백업하세요.",
-        source_lang="ko",
+        key="IDS_FAQ_001",
+        source_text="ABC 클라우드에서 동기화가 되지 않습니다.",
         target_lang="en-rUS",
-        glossary={"ABC 클라우드": "ABC Cloud"},
-        risk_profile="US",
         product="abc_cloud"
     ),
     "attempt_count": 1,
@@ -59,8 +56,8 @@ state = {
 ```python
 # ✅ 추가됨
 "translation_result": TranslationResult(
-    translation="Back up your data on ABC Cloud.",
-    candidates=["Back up your data on ABC Cloud."],
+    translation="Sync is not working on ABC Cloud.",
+    candidates=["Sync is not working on ABC Cloud."],
     latency_ms=1523,
     token_usage={"input_tokens": 450, "output_tokens": 89}
 )
@@ -71,7 +68,7 @@ state = {
 ```python
 # ✅ 추가됨
 "backtranslation_result": BacktranslationResult(
-    backtranslation="ABC 클라우드에서 데이터를 백업하세요.",
+    backtranslation="ABC 클라우드에서 동기화가 되지 않습니다.",
     latency_ms=892
 )
 ```

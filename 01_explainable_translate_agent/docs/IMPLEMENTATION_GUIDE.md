@@ -378,30 +378,26 @@ class WorkflowState(Enum):
 ### 6.1 TranslationUnit (입력)
 
 ```python
-# src/models/translation_unit.py
+# 사용 예시
+from src.models import TranslationUnit
 
-from pydantic import BaseModel
-from typing import Optional, Dict, List
-
-class TranslationUnit(BaseModel):
-    """번역 단위 - 단일 FAQ 항목"""
-
-    # 필수 필드
-    key: str                          # FAQ 키 (예: IDS_FAQ_SC_ABOUT)
-    source_text: str                  # 원문 (한국어)
-    source_lang: str                  # 원본 언어 (ko)
-    target_lang: str                  # 대상 언어 (en-rUS)
-
-    # 컨텍스트
-    glossary: Dict[str, str] = {}     # 용어집 매핑
-    risk_profile: str = "DEFAULT"     # 국가별 리스크 프로파일
-    style_guide: Dict[str, str] = {}  # 톤/격식 가이드
-
-    # 메타데이터
-    faq_version: str = "v1.0"
-    glossary_version: str = "v1.0"
-    product: str = "abc_cloud"
+unit = TranslationUnit(
+    key="IDS_FAQ_001",
+    source_text="ABC 클라우드에서 동기화가 되지 않습니다.",
+    target_lang="en-rUS",
+    product="abc_cloud"  # glossary는 product로 자동 로드
+)
 ```
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `key` | str | O | FAQ 키 |
+| `source_text` | str | O | 원문 |
+| `source_lang` | str | X | 소스 언어 (기본: "ko") |
+| `target_lang` | str | O | 타겟 언어 |
+| `glossary` | Dict | X | 용어집 (product로 자동 로드) |
+| `risk_profile` | str | X | 리스크 프로파일 (기본: "DEFAULT") |
+| `product` | str | X | 제품 식별자 |
 
 ### 6.2 AgentResult (평가 결과)
 

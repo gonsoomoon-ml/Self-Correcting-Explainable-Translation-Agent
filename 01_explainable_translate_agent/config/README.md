@@ -10,10 +10,8 @@ config/
 ├── languages.yaml         # 지원 언어 목록 (45개)
 ├── models.yaml            # AWS Bedrock 모델 설정
 ├── thresholds.yaml        # 점수 임계값 및 판정 기준
-└── risk_profiles/         # 국가별 리스크 프로파일
-    ├── README.md
-    ├── US.yaml
-    └── DEFAULT.yaml
+├── observability.env      # OTEL 환경 변수
+└── pricing.json           # 모델별 가격 정보
 ```
 
 ## 파일별 설명
@@ -253,15 +251,14 @@ print(f"토큰: 입력 {usage['input_tokens']}, 출력 {usage['output_tokens']}"
 
 #### 비용 최적화 팁
 
-1. **프롬프트 캐싱 활성화**: 동일 시스템 프롬프트 재사용 시 비용 절감
+1. **프롬프트 캐싱 활성화**: 동일 시스템 프롬프트 재사용 시 90% 비용 절감
 2. **max_tokens 적절히 설정**: 불필요하게 높으면 비용 증가
-3. **배치 처리**: 여러 FAQ를 묶어서 처리하여 오버헤드 감소
 
 ---
 
 ### thresholds.yaml
 
-점수 체계, 판정 기준, 가드레일, HITL 설정을 정의합니다.
+점수 체계, 판정 기준, 가드레일 설정을 정의합니다.
 
 #### 목적
 
@@ -286,13 +283,6 @@ regeneration:
 
 agent_agreement:
   disagreement_threshold: 3   # 에이전트 간 점수 차이 임계값
-  min_agreement_score: 0.6    # 최소 일치도
-
-hitl:
-  timeout_seconds: 300        # PM 검토 대기 시간
-  poll_interval_seconds: 3    # S3 폴링 주기
-  s3_bucket: "..."            # 검토 요청 버킷
-  s3_prefix: "reviews/"       # S3 경로 프리픽스
 
 guardrails:
   input:
@@ -305,12 +295,6 @@ guardrails:
   output:
     require_all_agents_pass: true
     min_avg_score: 3.5
-
-metrics:
-  track: [...]                # 추적할 메트릭 목록
-  alerts:
-    block_rate_threshold: 0.2 # 차단율 경고 기준
-    hitl_rate_threshold: 0.3  # HITL 비율 경고 기준
 ```
 
 #### 점수 스케일 (0-5)
@@ -326,7 +310,7 @@ LLM-as-Judge의 일관성을 위해 저정밀 스케일(0-5)을 사용합니다.
 | **1** | Severe | 매우 심각, 대폭 수정 필요 | 즉시 차단 |
 | **0** | Unusable | 완전 실패 | 즉시 차단 |
 
-> **참고**: 재생성 최대 횟수 초과 시 REJECTED로 처리 (HITL 미구현)
+> **참고**: 재생성 최대 횟수 초과 시 REJECTED로 처리
 
 #### 판정 흐름도
 
@@ -383,34 +367,6 @@ LLM-as-Judge의 일관성을 위해 저정밀 스케일(0-5)을 사용합니다.
 | **Output** | 모든 에이전트 Pass | 전부 =5점 | 5점 미만 시 재생성 |
 | **Output** | 평균 점수 | ≥3.5점 | 경고 |
 
-#### HITL (Human-in-the-Loop)
-
-> **⚠️ 현재 미구현**: HITL 에스컬레이션 대신 REJECTED로 처리됩니다.
-
-PM 검토가 필요한 경우 S3를 통해 비동기 협업 (향후 구현 예정):
-
-```
-┌─────────┐         ┌─────────┐         ┌─────────┐
-│ 에이전트 │──요청──▶│   S3    │◀──응답──│   PM    │
-│         │◀──결과──│ Bucket  │         │ Console │
-└─────────┘         └─────────┘         └─────────┘
-     │                                       │
-     │◀───── poll_interval (3초) ─────▶│
-     │◀───── timeout (300초) ───────────▶│
-```
-
-#### 메트릭 및 알림
-
-실시간 모니터링을 위한 메트릭:
-
-| 메트릭 | 설명 | 알림 임계값 |
-|--------|------|-------------|
-| `block_rate` | 차단된 번역 비율 | > 20% |
-| `hitl_escalation_rate` | HITL 에스컬레이션 비율 | > 30% |
-| `avg_latency` | 평균 처리 시간 | > 30초 |
-| `agent_scores` | 에이전트별 점수 분포 | - |
-| `agent_agreement` | 에이전트 간 일치도 | - |
-
 #### 코드에서 사용법
 
 ```python
@@ -433,11 +389,6 @@ max_len = thresholds["guardrails"]["input"]["max_source_length"]
 if len(source_text) > max_len:
     raise ValueError(f"입력이 {max_len}자를 초과합니다")
 
-# 에이전트 합의 검증
-scores = {"accuracy": 5, "compliance": 3, "quality": 4}
-max_diff = max(scores.values()) - min(scores.values())
-if max_diff >= thresholds["agent_agreement"]["disagreement_threshold"]:
-    escalate_to_hitl()
 ```
 
 #### 튜닝 가이드
@@ -446,7 +397,6 @@ if max_diff >= thresholds["agent_agreement"]["disagreement_threshold"]:
 |------|-----------|
 | 차단율이 너무 높음 | `fail_threshold` 1로 하향 |
 | 품질 문제 증가 | `pass_threshold` 5로 상향 |
-| HITL 과부하 | `disagreement_threshold` 3으로 상향 |
 | 타임아웃 빈발 | `max_latency_ms` 증가 |
 
 ## 코드에서 사용법
