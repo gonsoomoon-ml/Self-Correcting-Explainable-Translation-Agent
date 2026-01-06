@@ -55,7 +55,7 @@ state = await translate_node(state)
 **입력 상태:**
 | 키 | 타입 | 필수 | 설명 |
 |----|------|------|------|
-| `unit` | `TranslationUnit` | ✅ | 번역할 단위 |
+| `unit` | `TranslationUnit` | ✅ | 번역 단위 (원문, product) |
 | `feedback` | `str` | ❌ | 재생성시 피드백 |
 | `num_candidates` | `int` | ❌ | 후보 수 (기본: 1) |
 
@@ -80,7 +80,7 @@ state = await backtranslate_node(state)
 | 키 | 타입 | 필수 | 설명 |
 |----|------|------|------|
 | `translation_result` | `TranslationResult` | ✅ | 번역 결과 |
-| `unit` | `TranslationUnit` | ✅ | 언어 정보용 |
+| `unit` | `TranslationUnit` | ✅ | 언어 정보 (source_lang, target_lang) |
 
 **출력 상태:**
 | 키 | 타입 | 설명 |
@@ -104,7 +104,7 @@ state = await evaluate_node(state)
 **입력 상태:**
 | 키 | 타입 | 필수 | 설명 |
 |----|------|------|------|
-| `unit` | `TranslationUnit` | ✅ | 원문 및 용어집 |
+| `unit` | `TranslationUnit` | ✅ | 원문, glossary, risk_profile (자동 로드) |
 | `translation_result` | `TranslationResult` | ✅ | 번역 결과 |
 | `backtranslation_result` | `BacktranslationResult` | ✅ | 역번역 결과 |
 
@@ -153,7 +153,7 @@ state = await decide_node(state)
 | 모든 점수 = 5 | `PASS` | 발행 가능 |
 | 어느 점수 ≤ 2 | `BLOCK` | 즉시 거부 |
 | 점수 3-4, 재시도 가능 | `REGENERATE` | 재생성 |
-| 점수 3-4, 재시도 소진 | `REJECTED` | 거부 (HITL 미구현) |
+| 점수 3-4, 재시도 소진 | `REJECTED` | 거부 |
 | 점수 차이 ≥ 3 | `REJECTED` | 에이전트 불일치 |
 
 ---

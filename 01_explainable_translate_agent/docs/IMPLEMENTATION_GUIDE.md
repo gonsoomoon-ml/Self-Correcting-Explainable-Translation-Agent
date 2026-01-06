@@ -395,9 +395,10 @@ unit = TranslationUnit(
 | `source_text` | str | O | 원문 |
 | `source_lang` | str | X | 소스 언어 (기본: "ko") |
 | `target_lang` | str | O | 타겟 언어 |
-| `glossary` | Dict | X | 용어집 (product로 자동 로드) |
-| `risk_profile` | str | X | 리스크 프로파일 (기본: "DEFAULT") |
 | `product` | str | X | 제품 식별자 |
+| `glossary` | Dict | X | 파일에서 자동 로드 (`product`/`target_lang`) |
+| `style_guide` | Dict | X | 파일에서 자동 로드 (`product`/`target_lang`) |
+| `risk_profile` | str | X | 파일에서 자동 로드 (기본: "DEFAULT") |
 
 ### 6.2 AgentResult (평가 결과)
 

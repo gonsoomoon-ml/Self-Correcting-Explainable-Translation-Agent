@@ -147,7 +147,7 @@ state = {
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `unit` | TranslationUnit | 번역 단위 (원문, 언어, 용어집, 리스크 프로파일 등) |
+| `unit` | TranslationUnit | 번역 단위 (원문, 언어, product → glossary/style_guide/risk_profile 자동 로드) |
 | `attempt_count` | int | 현재 시도 횟수 |
 | `max_regenerations` | int | 최대 재생성 횟수 |
 | `workflow_state` | WorkflowState | 현재 워크플로우 상태 |
