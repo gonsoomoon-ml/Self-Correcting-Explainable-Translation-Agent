@@ -4,7 +4,7 @@
 Strands GraphBuilder에서 노드 간 데이터를 공유하기 위한 글로벌 상태 관리자.
 기존 Dict 기반 상태 전달 패턴을 글로벌 상태 패턴으로 전환합니다.
 
-sample-deep-insight/self-hosted의 _global_node_states 패턴 기반.
+
 
 주요 기능:
 - 워크플로우 인스턴스별 격리된 상태 관리

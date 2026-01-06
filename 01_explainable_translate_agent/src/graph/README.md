@@ -440,27 +440,104 @@ result['metrics']             # WorkflowMetrics (지연시간, 토큰 사용량)
 
 ## 상태 관리 (WorkflowStateManager)
 
-GraphBuilder 노드 간 데이터 공유를 위해 글로벌 상태 관리자를 사용합니다:
+GraphBuilder 노드 간 데이터 공유를 위해 **글로벌 상태 관리자**를 사용합니다.
+
+### 왜 글로벌 상태인가?
+
+Strands GraphBuilder의 노드는 `task` 파라미터만 받습니다. 기존 Dict 기반 상태 전달이 불가능하므로, 글로벌 상태 패턴으로 노드 간 데이터를 공유합니다.
+
+```
+기존 패턴 (LangGraph):           GraphBuilder 패턴:
+┌─────────────────────┐         ┌─────────────────────┐
+│ def node(state):    │         │ def node(task):     │
+│   unit = state[".."]│    →    │   state = get_wf..()│
+│   state["result"]=..│         │   unit = state[".."]│
+│   return state      │         │   state["result"]=..│
+└─────────────────────┘         └─────────────────────┘
+```
+
+### 초기 상태 (create_workflow)
 
 ```python
-from src.utils.workflow_state import (
-    WorkflowStateManager,
-    get_workflow_state,
-    update_workflow_state,
-    workflow_context
-)
+initial_state = {
+    "workflow_id": "uuid-...",
+    "unit": TranslationUnit(...),       # 번역 단위
+    "attempt_count": 1,                  # 현재 시도 횟수
+    "num_candidates": 1,                 # 번역 후보 수
+    "max_regenerations": 1,              # 최대 재생성 횟수
+    "workflow_state": WorkflowState.INITIALIZED,
+    "created_at": datetime.now(),
+    "token_usage": {                     # 토큰 추적
+        "total_input_tokens": 0,
+        "total_output_tokens": 0,
+        "by_agent": {}
+    }
+}
+```
 
-# 컨텍스트 매니저 사용 (권장)
+### 사용 방법
+
+#### 1. 컨텍스트 매니저 (권장)
+
+```python
+from src.utils.workflow_state import workflow_context, get_workflow_state
+
+# 워크플로우 생성 → 실행 → 정리를 자동 처리
 with workflow_context(unit, config) as workflow_id:
     result = await graph.invoke_async(task)
-    state = get_workflow_state(workflow_id)
+    final_state = get_workflow_state(workflow_id)
 
-# 노드 내에서 상태 접근
-def translate_node(task=None, **kwargs):
+# with 블록 종료 시 자동 cleanup
+```
+
+#### 2. 노드 내에서 상태 접근
+
+```python
+async def translate_node(task=None, **kwargs):
+    # 글로벌 상태에서 데이터 가져오기
     state = get_workflow_state()
     unit = state["unit"]
-    # ... 처리 ...
+    feedback = state.get("feedback")  # 재생성 시 피드백
+
+    # 번역 수행
+    result = await translate(...)
+
+    # 결과를 글로벌 상태에 저장
     state["translation_result"] = result
+    state["workflow_state"] = WorkflowState.TRANSLATING
+
+    return {"status": "completed"}  # GraphBuilder 반환값 (로깅용)
+```
+
+#### 3. 상태 업데이트 함수
+
+```python
+from src.utils.workflow_state import update_workflow_state
+
+# 여러 필드 한번에 업데이트
+update_workflow_state({
+    "translation_result": result,
+    "workflow_state": WorkflowState.TRANSLATING
+})
+```
+
+### 주요 함수
+
+| 함수 | 설명 |
+|------|------|
+| `workflow_context(unit, config)` | 컨텍스트 매니저 (생성→정리 자동) |
+| `get_workflow_state(workflow_id?)` | 현재 상태 가져오기 (직접 수정 가능) |
+| `update_workflow_state(updates)` | 상태 업데이트 |
+| `get_state_manager()` | 싱글톤 관리자 인스턴스 |
+
+### 스레드 안전성
+
+`_states_lock`으로 동시 접근 보호:
+
+```python
+_workflow_states: Dict[str, Dict[str, Any]] = {}  # 워크플로우별 상태
+_states_lock = threading.Lock()                    # 동시 접근 보호
+_current_workflow_id: Optional[str] = None         # 현재 활성 ID
 ```
 
 ---
