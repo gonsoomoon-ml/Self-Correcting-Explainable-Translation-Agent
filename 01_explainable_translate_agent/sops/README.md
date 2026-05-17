@@ -140,7 +140,7 @@ sops/
 
 ```python
 class EvaluationGateConfig:
-    pass_threshold: int = 5       # 통과 최소 점수 (모든 에이전트 5점 필요)
+    pass_threshold: int = 4       # 통과 최소 점수 (모든 에이전트 4점 이상 필요)
     fail_threshold: int = 2       # 차단 최대 점수
     max_regenerations: int = 1    # 최대 재시도 횟수
     disagreement_threshold: int = 3  # 에이전트 불일치 임계값
@@ -306,15 +306,15 @@ from sops import EvaluationGateSOP, EvaluationGateConfig
 
 # 기본 설정 (현재 적용)
 default_config = EvaluationGateConfig(
-    pass_threshold=5,      # 모든 에이전트 5점 필요
+    pass_threshold=4,      # 모든 에이전트 4점 이상 통과
     fail_threshold=2,      # 2점 이하 즉시 차단
     max_regenerations=1,   # 최대 1회 재시도
     disagreement_threshold=3  # 3점 차이 불일치로 간주
 )
 
-# 커스텀 설정 예시 (더 관대한 기준)
-lenient_config = EvaluationGateConfig(
-    pass_threshold=4,      # 4점 이상 통과
+# 커스텀 설정 예시 (더 엄격한 기준)
+strict_config = EvaluationGateConfig(
+    pass_threshold=5,      # 모든 에이전트 5점 만점만 통과
     fail_threshold=2,
     max_regenerations=3,   # 최대 3회 재시도
     disagreement_threshold=3

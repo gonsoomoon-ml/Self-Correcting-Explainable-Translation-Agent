@@ -273,9 +273,9 @@ scoring:
   scale_description: ... # 점수별 의미
 
 decision:
-  pass_threshold: 5      # 모든 에이전트 5점이면 Pass
+  pass_threshold: 4      # 모든 에이전트 4점 이상이면 Pass
   fail_threshold: 2      # 이하면 Fail
-  borderline_scores: [3, 4]  # 재생성 → 최대 횟수 초과 시 Rejected
+  borderline_scores: [3]  # 재생성 → 최대 횟수 초과 시 Rejected
 
 regeneration:
   max_attempts: 1        # 최대 재생성 횟수
@@ -396,7 +396,7 @@ if len(source_text) > max_len:
 | 상황 | 조정 방향 |
 |------|-----------|
 | 차단율이 너무 높음 | `fail_threshold` 1로 하향 |
-| 품질 문제 증가 | `pass_threshold` 5로 상향 |
+| 품질 문제 증가 | `pass_threshold` 5로 상향 (만점만 통과) |
 | 타임아웃 빈발 | `max_latency_ms` 증가 |
 
 ## 코드에서 사용법

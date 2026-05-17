@@ -4,9 +4,9 @@
 목적: 3개 평가 에이전트의 결과를 기반으로 최종 판정 결정
 
 비즈니스 규칙:
-- 모든 에이전트 점수 = 5: 자동 통과 (발행 가능)
+- 모든 에이전트 점수 >= 4: 자동 통과 (발행 가능)
 - 어떤 에이전트라도 점수 <= 2: 차단 (즉시 거부)
-- 어떤 에이전트라도 점수 = 3 또는 4:
+- 어떤 에이전트라도 점수 = 3:
   - 첫 번째 시도: 재생성 (피드백으로 재시도)
   - 최대 재시도 후: 에스컬레이션 (PM 검수)
 - 에이전트 간 점수 차이 >= 3: 에스컬레이션 (불일치 평가)
@@ -23,7 +23,7 @@ from src.models.gate_decision import GateDecision, Verdict
 @dataclass
 class EvaluationGateConfig:
     """평가 게이트 임계값 설정"""
-    pass_threshold: int = 5       # 통과 최소 점수 (모든 에이전트 5점 필요)
+    pass_threshold: int = 4       # 통과 최소 점수 (모든 에이전트 4점 이상 필요)
     fail_threshold: int = 2       # 차단 최대 점수
     max_regenerations: int = 1    # 최대 재시도 횟수
     disagreement_threshold: int = 3  # 에스컬레이션 전 최대 점수 차이
