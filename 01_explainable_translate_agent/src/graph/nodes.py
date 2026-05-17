@@ -145,10 +145,10 @@ async def evaluate_node(task=None, **kwargs) -> Dict[str, Any]:
         backtranslation = backtranslation_result.backtranslation
         candidates = translation_result.candidates
 
-        risk_profile = get_risk_profile(unit.risk_profile)
+        risk_profile = get_risk_profile(unit.product, unit.risk_profile)
         eval_start_time = datetime.now()
 
-        logger.info(f"[{unit.key}] 평가 시작 (3개 에이전트 병렬), 리스크 프로파일: {unit.risk_profile}")
+        logger.info(f"[{unit.key}] 평가 시작 (3개 에이전트 병렬), 리스크 프로파일: {unit.product}/{unit.risk_profile}")
 
         # 3개 에이전트 병렬 실행
         results = await asyncio.gather(

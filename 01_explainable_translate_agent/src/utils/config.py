@@ -63,23 +63,26 @@ class ConfigLoader:
             f"Config file '{name}' not found in {self.config_dir}"
         )
 
-    def load_risk_profile(self, country_code: str) -> Dict[str, Any]:
+    def load_risk_profile(self, product: str, country_code: str) -> Dict[str, Any]:
         """
-        Load a country-specific risk profile.
+        Load a product- and country-specific risk profile.
+
+        Strict path: data/risk_profiles/{product}/{country_code}.yaml
+        Raises FileNotFoundError if the exact file is absent (no silent fallback).
 
         Args:
-            country_code: Country code (e.g., "US", "EU", "CN")
+            product: Product identifier (e.g., "abc_cloud", "finance_kr")
+            country_code: Country code (e.g., "US", "KR", "DEFAULT")
 
         Returns:
             Risk profile configuration
         """
         # risk_profiles are in data/ (not config/) - they're knowledge, not settings
         data_dir = self.config_dir.parent / "data"
-        profile_dir = data_dir / "risk_profiles"
+        profile_dir = data_dir / "risk_profiles" / product
         candidates = [
             profile_dir / f"{country_code}.yaml",
             profile_dir / f"{country_code}.yml",
-            profile_dir / "DEFAULT.yaml",
         ]
 
         for path in candidates:
@@ -87,20 +90,15 @@ class ConfigLoader:
                 with open(path, "r", encoding="utf-8") as f:
                     return yaml.safe_load(f)
 
-        # Return minimal default if no profile found
-        return {
-            "profile": {
-                "country_code": country_code,
-                "regulatory_strictness": "medium"
-            },
-            "prohibited_terms": [],
-            "required_disclaimers": {}
-        }
+        raise FileNotFoundError(
+            f"Risk profile not found: product='{product}', country='{country_code}'. "
+            f"Expected one of: {[str(c) for c in candidates]}"
+        )
 
-    def list_risk_profiles(self) -> List[str]:
-        """List available risk profile country codes"""
+    def list_risk_profiles(self, product: str) -> List[str]:
+        """List available risk profile country codes for a product"""
         data_dir = self.config_dir.parent / "data"
-        profile_dir = data_dir / "risk_profiles"
+        profile_dir = data_dir / "risk_profiles" / product
         if not profile_dir.exists():
             return []
 
@@ -268,10 +266,10 @@ def get_thresholds() -> Dict[str, Any]:
     return loader.get_thresholds()
 
 
-def get_risk_profile(country_code: str) -> Dict[str, Any]:
-    """Convenience function to get a risk profile"""
+def get_risk_profile(product: str, country_code: str) -> Dict[str, Any]:
+    """Convenience function to get a product- and country-specific risk profile"""
     loader = get_config_loader()
-    return loader.load_risk_profile(country_code)
+    return loader.load_risk_profile(product, country_code)
 
 
 def get_glossary(product: str, target_lang: str) -> Dict[str, str]:

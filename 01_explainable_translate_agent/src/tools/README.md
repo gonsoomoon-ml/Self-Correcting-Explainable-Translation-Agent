@@ -134,14 +134,14 @@ quality_result = await evaluate_quality(
 ```python
 from src.utils import get_risk_profile
 
-# 국가별 규제 프로파일 로드
-profile = get_risk_profile("US")
+# 제품 + 국가별 규제 프로파일 로드 (strict)
+profile = get_risk_profile("abc_cloud", "US")
 
 # Compliance 평가 시 프로파일 적용
 compliance_result = await evaluate_compliance(
     source_text=source,
     translation=translation,
-    risk_profile=profile  # US 규제 적용 (FTC, CCPA 등)
+    risk_profile=profile  # abc_cloud × US 규제 적용 (FTC, CCPA 등)
 )
 ```
 

@@ -791,7 +791,7 @@ from src.utils import get_config, get_thresholds, get_risk_profile, ConfigLoader
 # 편의 함수 사용
 languages = get_config("languages")
 thresholds = get_thresholds()
-us_profile = get_risk_profile("US")
+us_profile = get_risk_profile("abc_cloud", "US")
 
 # ConfigLoader 인스턴스 사용
 config = ConfigLoader()
@@ -804,8 +804,8 @@ source = config.get_source_language()  # {"code": "ko", "name": "Korean", ...}
 translator_config = config.get_model_config("translator")
 print(translator_config["model_id"])
 
-# 리스크 프로파일 목록
-profiles = config.list_risk_profiles()  # ["DEFAULT", "US"]
+# 리스크 프로파일 목록 (제품별)
+profiles = config.list_risk_profiles("abc_cloud")  # ["DEFAULT", "US"]
 ```
 
 **캐싱:**
@@ -907,5 +907,5 @@ except FileNotFoundError as e:
 |------|------|
 | `get_config(name)` | YAML 설정 로드 |
 | `get_thresholds()` | 평가 임계값 로드 |
-| `get_risk_profile(locale)` | 리스크 프로파일 로드 |
+| `get_risk_profile(product, country_code)` | 제품·국가 리스크 프로파일 로드 (strict) |
 | `create_system_prompt_with_cache(prompt)` | 캐시 포인트가 포함된 시스템 프롬프트 생성 |

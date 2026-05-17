@@ -55,10 +55,15 @@
 
 ```
 data/risk_profiles/
-├── README.md          # 이 문서
-├── DEFAULT.yaml       # 기본 프로파일 (글로벌)
-└── US.yaml            # 미국 시장 프로파일
+├── README.md                  # 이 문서
+├── abc_cloud/                 # 제품별 디렉토리 (SaaS)
+│   ├── DEFAULT.yaml           # 글로벌 SaaS baseline
+│   └── US.yaml                # 미국 시장 (FTC, CCPA, COPPA, ADA)
+└── finance_kr/                # 제품별 디렉토리 (금융)
+    └── KR.yaml                # 한국 금융 (자본시장법·금소법·예금자보호법·PIPA)
 ```
+
+> Strict 로딩: `{product}/{country_code}.yaml` 정확 일치 파일만 로드됩니다. 누락 시 `FileNotFoundError`.
 
 ---
 
@@ -143,7 +148,11 @@ tone:
 
 1. 기존 프로파일을 템플릿으로 복사:
    ```bash
-   cp US.yaml NEW_COUNTRY.yaml
+   # 같은 제품, 다른 국가
+   cp abc_cloud/US.yaml abc_cloud/NEW_COUNTRY.yaml
+
+   # 다른 제품, 같은 국가
+   cp finance_kr/KR.yaml new_product/KR.yaml
    ```
 
 2. `profile` 섹션에 올바른 국가 정보 입력
@@ -160,10 +169,11 @@ tone:
 
 ## 사용 가능한 프로파일
 
-| 프로파일 | 국가 | 지역 | 엄격도 | 주요 규제 |
-|----------|------|------|--------|-----------|
-| `US.yaml` | 미국 | 북미 | High | FTC, FDA, CCPA, COPPA, ADA |
-| `DEFAULT.yaml` | (기본값) | 글로벌 | Medium | 기본 콘텐츠 안전 규칙 |
+| 경로 | 제품 | 국가 | 엄격도 | 주요 규제 |
+|------|------|------|--------|-----------|
+| `abc_cloud/DEFAULT.yaml` | abc_cloud (SaaS) | 글로벌 | Medium | 기본 콘텐츠 안전 규칙 |
+| `abc_cloud/US.yaml` | abc_cloud (SaaS) | 미국 | High | FTC, FDA, CCPA, COPPA, ADA |
+| `finance_kr/KR.yaml` | finance_kr (금융) | 한국 | High | 자본시장법, 금소법, 예금자보호법, PIPA |
 
 ### US.yaml 요약
 
@@ -190,8 +200,9 @@ tone:
 ```python
 from src.utils import get_risk_profile
 
-# 타겟 시장의 프로파일 로드
-profile = get_risk_profile("US")
+# 제품 + 타겟 시장 프로파일 로드 (strict — 정확 일치만)
+profile = get_risk_profile("abc_cloud", "US")   # → abc_cloud/US.yaml
+profile = get_risk_profile("finance_kr", "KR")  # → finance_kr/KR.yaml
 
 # 금칙어 접근
 for term in profile["prohibited_terms"]:
