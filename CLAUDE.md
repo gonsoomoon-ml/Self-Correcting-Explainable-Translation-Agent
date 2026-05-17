@@ -1,96 +1,55 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+이 프로젝트에서 작업할 때의 *team conventions* 및 *Claude Code 동작 지침*.
 
-**All documentation should be in Korean, NOT English.**
+## Language
 
-## Project Overview
+답변은 **한국어 중심**, 기술 용어는 영어 병기 (e.g., "에이전트 (agent)",
+"노드 (node)"). 코드 주석/식별자는 영어 유지.
 
-AWS Bedrock 기반 다국어 FAQ 자동 번역 시스템. 에이전트 기반 가드레일로 품질/리스크 관리.
+## Workflow
 
-## Common Commands
+작업 시 다음 cycle:
 
-```bash
-# Environment setup (필수, 최초 1회)
-./setup/create_env.sh
+1. **탐색 / Plan Mode** (`Shift+Tab` 2회 또는 `/plan`) — 변경 전 *계획부터*
+2. **사용자 승인** — Plan 검토 + Approve 후 진행
+3. **구현** — Write tool, 한 번에 한 변경
+4. **검증** — dry-run 또는 actual test
 
-# AWS 인증 (필수)
-aws configure
+*큰 변경 (multi-file, architectural)* 시 *반드시 Plan Mode 사용*.
 
-# 워크플로우 실행 (01_explainable_translate_agent/ 디렉토리에서)
-uv run --no-sync python test_workflow.py              # 단일 테스트
-uv run --no-sync python test_workflow.py --dry-run    # 구조 확인 (API 호출 없음)
-uv run --no-sync python test_workflow.py --debug      # 디버그 모드 (프롬프트 출력)
+## Spec 우선 원칙 (Spec is primary)
 
-# 옵션
---input <file>          # 입력 JSON 파일
---session-id <id>       # 커스텀 세션 ID
---max-regen <n>         # 최대 재생성 횟수 (기본: 1)
-```
+**Declarative spec files (data, configs, rules, templates) 가
+*시스템 행동의 ground truth***.
 
-## Architecture
+- 데이터 / config 파일이 *시스템 동작 결정*
+- Code 는 spec 을 *serve* 하는 mechanism
+- 새 도메인/규칙 추가 시 *spec 추가가 우선*, code 수정은 *마지막 수단*
+- *Spec 변경 시 *도메인 전문가 review 필수* — AI 추측은 *imperfect*
 
-### Workflow Pipeline
-```
-INPUT → TRANSLATE → BACKTRANSLATE → EVALUATE (3 agents 병렬) → GATE
-                                                                 ↓
-                                            ┌────────────────────┼────────────────────┐
-                                            ↓                    ↓                    ↓
-                                        PUBLISHED           REGENERATE            REJECTED
-                                                          (loop back)             /BLOCK
-```
+## Code 변경 주의
 
-### Key Layers
+- *Deterministic decision logic* (Python SOP, gate functions) — 변경 매우 신중
+- *Workflow orchestrator* — multi-file 영향, Plan Mode 필수
+- *Prompt templates* — 영향 광범위, 변경 후 *test 필수*
 
-| Layer | Location | Description |
-|-------|----------|-------------|
-| **Models** | `src/models/` | Pydantic 데이터 모델 (TranslationUnit, AgentResult, GateDecision) |
-| **Tools** | `src/tools/` | Agent-as-Tool 래퍼 - Bedrock 호출 |
-| **SOPs** | `sops/` | 의사결정 절차 (EvaluationGateSOP, RegenerationSOP) |
-| **Graph** | `src/graph/` | Strands GraphBuilder 워크플로우 오케스트레이션 |
-| **Skills** | `skills/` | 재사용 가능한 지식/프롬프트 패키지 (SKILL.md + references/) |
+*Code 변경 시 *해당 spec 도 함께 검토**.
 
-### 3 Evaluation Agents
+## Maker-Checker 패턴
 
-| Agent | 평가 영역 |
-|-------|-----------|
-| ACCURACY | 의미 보존, 역번역 검증, 용어 매핑, 포맷 무결성 |
-| COMPLIANCE | 규제 준수, 금칙어, 면책문구, 콘텐츠 안전 |
-| QUALITY | 톤/격식, 문화 적합성, 후보 비교 |
+AI 가 *generate* 한 산출물 (코드 / 데이터 / 응답) 은 *사람의 Reviewer 단계 통과 후 적용*:
 
-### Scoring (0-5 Scale)
+- AI 의 첫 출력 = *후보 (candidate)*
+- 사람의 검증 + 수정 = *ground truth*
+- 검증 없이 *직접 적용 금지*
 
-| Score | Action |
-|-------|--------|
-| 5 | Pass (자동 발행) |
-| 3-4 | Regenerate (피드백 반영 재생성) → 최대 횟수 초과 시 Rejected |
-| ≤2 | Block (즉시 거부) |
+## Mindset
 
-## Key Files
+**한 사람의 3 역할** (AI 와 함께):
 
-- `test_workflow.py` - 워크플로우 테스트 진입점
-- `src/graph/builder.py` - TranslationWorkflowGraphV2 클래스 (Strands GraphBuilder)
-- `src/graph/nodes.py` - 파이프라인 노드 (translate, backtranslate, evaluate, decide)
-- `sops/evaluation_gate.py` - EvaluationGateSOP (Pass/Block/Regenerate/Rejected 판정)
-- `src/utils/observability.py` - OTEL 트레이싱 유틸리티
+- **Architect** (Specify) — 의도를 spec 으로 외재화
+- **Reviewer** (Verify) — spec / code / result 검증
+- **Conductor** (Orchestrate) — workflow + 협업 흐름 조율
 
-## Bedrock Integration
-
-- Region: `us-west-2`
-- Model: Claude Opus 4.5 (`global.anthropic.claude-opus-4-5-20251101-v1:0`)
-- API: boto3 Bedrock Converse API
-
-## Observability (OTEL)
-
-CloudWatch GenAI Observability 연동. 자세한 내용: `01_explainable_translate_agent/docs/observability.md`
-
-```python
-# OTEL 세션으로 워크플로우 실행
-with observability_session(session_id="user-123", workflow_name="translation"):
-    result = await graph.run(unit)
-```
-
-## Results
-
-결과는 `01_explainable_translate_agent/results/` 에 JSON으로 저장:
-- `results/single/<timestamp>/<key>.json` - 단일 테스트 결과
+*Spec 이 primary, code 가 spec 을 serve.*
